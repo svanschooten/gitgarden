@@ -17,7 +17,11 @@ fi
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 [ -z "$REPO_ROOT" ] && exit 0
 
-SCRIPT_PATH="$REPO_ROOT/$SCRIPT_NAME"
+if [ -z "$GITGARDEN_REPO_PATH" ]; then
+  echo "GITGARDEN_REPO_PATH not set, skipping" > /dev/tty
+  exit 0
+fi
+SCRIPT_PATH="$GITGARDEN_REPO_PATH/$SCRIPT_NAME"
 
 if [ ! -f "$SCRIPT_PATH" ]; then
   echo "$SCRIPT_NAME not found, skipping" > /dev/tty

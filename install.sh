@@ -18,7 +18,10 @@ else
     exit 1
 fi
 
+GITGARDEN_REPO_PATH="$(cd "$(dirname "$0")" && pwd)"
 export GITGARDEN_TARGET="$TARGET_REPO_URL"
+export GITGARDEN_REPO_PATH
+
 SHELL_CONFIG=""
 if [ -n "$BASH_VERSION" ]; then
     SHELL_CONFIG="$HOME/.bashrc"
@@ -38,6 +41,16 @@ if ! grep -q "export GITGARDEN_TARGET=" "$SHELL_CONFIG" 2>/dev/null; then
 else
     sed -i.bak "s|export GITGARDEN_TARGET=.*|export GITGARDEN_TARGET=\"$TARGET_REPO_URL\"|" "$SHELL_CONFIG"
     echo "✓ Updated GITGARDEN_TARGET in $SHELL_CONFIG"
+fi
+
+if ! grep -q "export GITGARDEN_REPO_PATH=" "$SHELL_CONFIG" 2>/dev/null; then
+    {
+        echo "export GITGARDEN_REPO_PATH=\"$GITGARDEN_REPO_PATH\""
+    } >> "$SHELL_CONFIG"
+    echo "✓ Added GITGARDEN_REPO_PATH to $SHELL_CONFIG"
+else
+    sed -i.bak "s|export GITGARDEN_REPO_PATH=.*|export GITGARDEN_REPO_PATH=\"$GITGARDEN_REPO_PATH\"|" "$SHELL_CONFIG"
+    echo "✓ Updated GITGARDEN_REPO_PATH in $SHELL_CONFIG"
 fi
 
 git config --global init.templatedir "$PWD/.git_template"
