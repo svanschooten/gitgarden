@@ -14,7 +14,7 @@ Git Garden visualizes the health, diversity, and evolution of a codebase as a li
 ## TODO
 - [x] Create git hook
 - [x] Create a script to analyze the commit
-- [ ] Create a script to generate garden feeding data from git commit analysis
+- [x] Create a script to generate garden feeding data from git commit analysis
 - [ ] Create garden visualization that grows with every feeding
 - [ ] Create a script to publish garden visualization to GitHub Pages
 - [x] Create an installation script that sets the commit hook and initializes the garden
@@ -84,3 +84,4 @@ We welcome contributions to Git Garden! If you'd like to contribute, please foll
 
 ## License
 Git Garden is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+

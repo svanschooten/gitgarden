@@ -10,7 +10,9 @@ if [ "$SKIP_GARDEN" = "1" ]; then
 fi
 
 COMMIT_MSG=$(git log -1 --pretty=%B)
-echo "$COMMIT_MSG" | grep -qi "$SKIP_FLAG" && exit 0
+if echo "$COMMIT_MSG" | grep -qiF "$SKIP_FLAG"; then
+  exit 0
+fi
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 [ -z "$REPO_ROOT" ] && exit 0
@@ -18,16 +20,17 @@ REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 SCRIPT_PATH="$REPO_ROOT/$SCRIPT_NAME"
 
 if [ ! -f "$SCRIPT_PATH" ]; then
-  echo "$SCRIPT_NAME not found, skipping"
+  echo "$SCRIPT_NAME not found, skipping" > /dev/tty
   exit 0
 else
-  echo "🌱 Git Garden Growing!"
+  echo "🌱  Git Garden Growing!" > /dev/tty
 fi
 
+REPO_NAME=$(basename "$REPO_ROOT")
 cmd="node \"$SCRIPT_PATH\" --repo \"$REPO_NAME\""
 
-for f in $(git diff --cached --name-only); do
-  diff=$(git diff --cached "$f" | sed "s/'/'\\\\''/g")
+for f in $(git diff-tree --no-commit-id --name-only -r HEAD); do
+  diff=$(git show HEAD:"$f" 2>/dev/null | sed "s/'/'\\\\''/g")
   cmd="$cmd --file '$f' --diff '$diff'"
 done
 
@@ -35,6 +38,6 @@ if [ -n "$GITGARDEN_TARGET" ]; then
   cmd="$cmd --target \"$GITGARDEN_TARGET\""
 fi
 
-eval "$cmd >/dev/null 2>&1 &"
+eval "$cmd" > /dev/tty
 
 exit 0
