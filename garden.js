@@ -1,5 +1,6 @@
 import { analyzeDiffComplexity } from 'indent-complexity';
-import {GitGardenArguments, GitGardenConfig, PlantMap} from './util.js'
+import {GitGardenArguments, GitGardenConfig, PlantMap, Diff} from './util.js'
+import { generateGarden } from './visualizer.js';
 import crypto from "crypto";
 
 // Configuration
