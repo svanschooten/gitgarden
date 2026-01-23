@@ -85,3 +85,16 @@ export class GitGardenConfig {
         this.max_score = config.max_score;
     }
 }
+
+export class Diff {
+    plant;
+    coords;
+    intensity;
+    complexity;
+    constructor(plant, coords, intensity, complexity) {
+        this.plant = plant;
+        this.coords = coords;
+        this.intensity = intensity;
+        this.complexity = complexity;
+    }
+}

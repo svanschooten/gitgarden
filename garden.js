@@ -30,12 +30,17 @@ function filePathToCoords(filePath, width, height) {
 
 // Analyze diffs
 for (const diff of diffs) {
+    let obj = analyzeDiff(diff)
+    console.log(obj.plant, obj.coords, obj.intensity, obj.complexity);
+}
+
+function analyzeDiff(diff){
     const diffStats = analyzeDiffComplexity(diff.diff, {verbose: true, include: "both"});
     const complexity = normalizeComplexity(diffStats.score, config.max_score);
     const coords = filePathToCoords(`${repo}::${diff.file}`, config.width, config.height);
     const intensity = normalizeIntensity(diffStats.lineCount);
     const plant = plantMap.getByExtension(diff.file.split(".").pop());
-    console.log(plant, coords, intensity, complexity);
+    return new Diff(plant, coords, intensity, complexity)
 }
 
 // Update garden
