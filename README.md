@@ -10,7 +10,6 @@ Git Garden visualizes the health, diversity, and evolution of a codebase as a li
 - “A neglected repo literally looks dead.”
 - “Monoculture codebases are visually boring.”
 - “Healthy teams grow diverse gardens.”
-- “Technical debt shows up as weeds and dark patches.”
 
 ## TODO
 - [x] Create git hook
