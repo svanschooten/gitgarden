@@ -1,0 +1,29 @@
+#!/bin/sh
+
+set -e
+
+SCRIPT_NAME="garden.js"
+SKIP_FLAG="[skip garden]"
+
+if [ "$SKIP_GARDEN" = "1" ]; then
+  exit 0
+fi
+
+COMMIT_MSG=$(git log -1 --pretty=%B)
+echo "$COMMIT_MSG" | grep -qi "$SKIP_FLAG" && exit 0
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+[ -z "$REPO_ROOT" ] && exit 0
+
+SCRIPT_PATH="$REPO_ROOT/$SCRIPT_NAME"
+
+if [ ! -f "$SCRIPT_PATH" ]; then
+  echo "$SCRIPT_NAME not found, skipping"
+  exit 0
+else
+  echo "🌱 Git Garden Growing!"
+fi
+
+node "$SCRIPT_PATH" >/dev/null 2>&1 &
+
+exit 0
