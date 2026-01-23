@@ -47,7 +47,7 @@ export function analyzeDiff(diff){
 }
 
 // Update garden
-generateGarden(diffs)
+await generateGarden(diffs)
 
 // Publish the garden to target
 function run(cmd, options = {}) {
