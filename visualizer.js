@@ -46,6 +46,7 @@ function saveGarden(canvas){
 
 function addCommitToGarden(ctx, commit){
     console.log('Growing the garden..')
+    
 }
 
 
