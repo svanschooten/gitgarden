@@ -1,5 +1,6 @@
 import { createCanvas } from 'canvas';
 import { localFileManager } from './filemanager.js';
+import { analyzeDiff } from './garden.js';
 import { readFile } from 'fs/promises';
 import fs from 'fs';
 

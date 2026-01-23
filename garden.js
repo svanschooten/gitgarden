@@ -34,7 +34,7 @@ for (const diff of diffs) {
     console.log(obj.plant, obj.coords, obj.intensity, obj.complexity);
 }
 
-function analyzeDiff(diff){
+export function analyzeDiff(diff){
     const diffStats = analyzeDiffComplexity(diff.diff, {verbose: true, include: "both"});
     const complexity = normalizeComplexity(diffStats.score, config.max_score);
     const coords = filePathToCoords(`${repo}::${diff.file}`, config.width, config.height);
