@@ -1,5 +1,5 @@
 {
-  "map": {
+  "plants": {
     "grass": {
       "extensions": [".js", ".ts"],
       "color": [115, 80, 80]
