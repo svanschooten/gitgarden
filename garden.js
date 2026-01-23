@@ -38,7 +38,7 @@ for (const diff of diffs) {
 }
 
 // Update garden
-generateGarden(diffs)
+// generateGarden(diffs)
 
 // Publish the garden to target
 
