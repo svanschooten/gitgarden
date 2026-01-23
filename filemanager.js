@@ -1,16 +1,6 @@
 import fs from 'fs';
 import { loadImage } from 'canvas';
 
-class LocalFileManager extends FileMngrInterface {
-  async loadGarden(filename) {
-    return loadImage(filename);
-  }
-
-  async saveGarden(filename, buffer) {
-    fs.writeFileSync(filename, buffer);
-  }
-}
-
 class FileMngrInterface {
   /**
    * loads an existing garden image
@@ -35,5 +25,16 @@ class FileMngrInterface {
     console.warn('WARNING! Function "' + fName + '" is not overridden in ' + this.constructor.name);
   }
 }
+
+class LocalFileManager extends FileMngrInterface {
+  async loadGarden(filename) {
+    return loadImage(filename);
+  }
+
+  async saveGarden(filename, buffer) {
+    fs.writeFileSync(filename, buffer);
+  }
+}
+
 
 export const localFileManager = new LocalFileManager();
