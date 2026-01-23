@@ -64,7 +64,7 @@ function drawFlower(ctx, growCycle){
 
 function calculateSize(complexity){
     const max_size = config.width * 0.1;
-    size = complexity * max_size
+    const size = complexity * max_size
     return size == 0 ? 1 : size
 }
 
