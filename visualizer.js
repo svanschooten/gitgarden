@@ -54,6 +54,22 @@ function addCommitToGarden(ctx, commit){
     }
 }
 
+function drawFlower(ctx, growCycle){
+    ctx.beginPath();
+    ctx.arc(growCycle.coords.x, growCycle.coords.y, calculateSize(growcycle.complexity), 0, 2 * Math.PI);
+    ctx.fillStyle = getRgba(growCycle.plant.color);
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = getRgba((growCycle.plant.color)-10);
+    ctx.stroke();
+}
+
+function calculateSize(complexity){
+    const max_size = config.width * 0.1;
+    size = complexity * max_size
+    return size == 0 ? 1 : size
+}
+
 
 function getRgba(item){
     return `rgba(${item[0]}, ${item[1]}, ${item[2]})`
