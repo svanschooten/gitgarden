@@ -19,7 +19,31 @@ Git Garden visualizes the health, diversity, and evolution of a codebase as a li
 - [ ] Create garden visualization that grows with every feeding
 - [ ] Create a script to publish garden visualization to GitHub Pages
 - [ ] Create an installation script that sets the commit hook and initializes the garden
-- [ ] Implement the generation scripts in github actions workflow step
+- [ ] Implement the generation scripts in GitHub actions workflow step
+
+## Installation
+The garden visualization is generated and then pushed to GitHub pages on a predefined page.
+### Local usage
+Use the included installation script to set up the git hook and initialize the garden visualization.
+See [install.sh](./install.sh) for more details, it sets the global template directory for git to be `~/.git-templates`.
+So if you have a pre-existing global template directory, it will be overwritten.
+After each commit, the garden visualization will be updated.
+
+### Github actions usage
+Create a workflow file in your repository that runs the script after each commit.
+For example:
+```yaml
+- name: Generate Git Garden
+  run: |
+    REPO_NAME=$(basename $GITHUB_REPOSITORY)
+    args=(--repo "$REPO_NAME")
+    for f in $(git diff --name-only $GITHUB_SHA~1 $GITHUB_SHA); do
+      diff=$(git diff $GITHUB_SHA~1 $GITHUB_SHA -- "$f" | sed 's/"/\\"/g' | tr '\n' ' ')
+      args+=(--file "$f" --diff "$diff")
+    done
+    args+=(--target "<target repository>")
+    node garden.js "${args[@]}"
+```
 
 ## Garden Visualization
 ### Color mapping

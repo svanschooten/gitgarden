@@ -24,6 +24,17 @@ else
   echo "🌱 Git Garden Growing!"
 fi
 
-node "$SCRIPT_PATH" >/dev/null 2>&1 &
+cmd="node \"$SCRIPT_PATH\" --repo \"$REPO_NAME\""
+
+for f in $(git diff --cached --name-only); do
+  diff=$(git diff --cached "$f" | sed "s/'/'\\\\''/g")
+  cmd="$cmd --file '$f' --diff '$diff'"
+done
+
+if [ -n "$GITGARDEN_TARGET" ]; then
+  cmd="$cmd --target \"$GITGARDEN_TARGET\""
+fi
+
+eval "$cmd >/dev/null 2>&1 &"
 
 exit 0
