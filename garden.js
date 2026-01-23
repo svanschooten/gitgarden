@@ -1,11 +1,14 @@
-import {GitGardenArguments} from './util.js'
 import { analyzeDiffComplexity } from 'indent-complexity';
+import {GitGardenArguments} from './util.js'
 import { readFileSync } from "fs";
+import crypto from "crypto";
 
-const {repo, target, diffs} = new GitGardenArguments();
+// Configuration
 const SEED = 453214123413;
+const {repo, target, diffs} = new GitGardenArguments();
 let config = JSON.parse(readFileSync("config.json", "utf8"));
 
+// Normalization functions
 function normalizeComplexity(score, max = 200) {
     return Math.min(score / max, 1);
 }
@@ -24,10 +27,16 @@ function filePathToCoords(filePath, width, height) {
     };
 }
 
+// Analyze diffs
 for (const diff of diffs) {
-    const diffStats = analyzeDiffComplexity(diff.diff, {verbose: true});
+    const diffStats = analyzeDiffComplexity(diff.diff, {verbose: true, include: "both"});
     const complexity = normalizeComplexity(diffStats.score, config.max_score);
     const coords = filePathToCoords(`${repo}::${diff.file}`, config.width, config.height);
     const intensity = normalizeIntensity(diffStats.lineCount);
 }
+
+// Update garden
+
+
+// Publish garden to target
 
