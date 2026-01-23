@@ -53,12 +53,16 @@ function addCommitToGarden(ctx, commit){
 }
 
 function drawFlower(ctx, growCycle){
+    let plantColor = growCycle.plant.color
+    if(plantColor == null){
+        plantColor = colormap.unknown
+    }
     ctx.beginPath();
     ctx.arc(growCycle.coords.x, growCycle.coords.y, calculateSize(growCycle.complexity), 0, 2 * Math.PI);
-    ctx.fillStyle = getRgba(growCycle.plant.color);
+    ctx.fillStyle = getRgba(plantColor);
     ctx.fill();
     ctx.lineWidth = 4;
-    ctx.strokeStyle = getRgba((growCycle.plant.color)-10);
+    ctx.strokeStyle = getRgba(plantColor-10);
     ctx.stroke();
 }
 
