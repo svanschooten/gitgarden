@@ -73,3 +73,15 @@ export class PlantMap {
         return null;
     }
 }
+
+export class GitGardenConfig {
+    width;
+    height;
+    max_score;
+    constructor() {
+        const config = JSON.parse(readFileSync("config.json", "utf8"));
+        this.width = config.width;
+        this.height = config.height;
+        this.max_score = config.max_score;
+    }
+}

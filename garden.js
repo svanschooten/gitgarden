@@ -1,13 +1,12 @@
 import { analyzeDiffComplexity } from 'indent-complexity';
-import {GitGardenArguments, PlantMap} from './util.js'
-import { readFileSync } from "fs";
+import {GitGardenArguments, GitGardenConfig, PlantMap} from './util.js'
 import crypto from "crypto";
 
 // Configuration
 const SEED = 453214123413;
 const {repo, target, diffs} = new GitGardenArguments();
 const plantMap = new PlantMap();
-let config = JSON.parse(readFileSync("config.json", "utf8"));
+const config = new GitGardenConfig();
 
 // Normalization functions
 function normalizeComplexity(score, max = 200) {

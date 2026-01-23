@@ -57,10 +57,22 @@ see the following pseudocode for calculating plant location and coloring:
 hashcode = hash(repoName + "::" + filePath)
 x = hashcode % width
 y = (hashcode / width) % height
+hsv_h = ColoMap.getByExtension(fileExtension)
 hsv_v = normalize(linesAdded + linesRemoved, 80)
 hsv_s = normalize(complexity, 80)
 ```
 This is deterministic and language-agnostic.
+
+
+## Code organization
+Everything is split out into separate files to keep concerns separate and make it easier to understand.
+- [garden.js](./garden.js): The main script that imports, orchestrates, and runs the other scripts to generate the garden visualization.
+- [install.sh](./install.sh): The installation script that sets up the git hook and other basic configuration.
+- [util.js](./util.js): Utility functions used by the other scripts, like loading JSON files or parsing command line arguments.
+- [visualizer.js](./visualizer.js): The script that generates the garden visualization in the form of a PNG image.
+- [server.js](./server.js): The Express server that serves the garden visualization for testing and debugging purposes.
+- [config.json](./config.json): Configuration file for the garden generation.
+- [colormap.json](./colormap.json): Plant color and extension mapping configuration.
 
 
 ## Contributing
