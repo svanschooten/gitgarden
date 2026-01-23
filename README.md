@@ -15,8 +15,8 @@ Git Garden visualizes the health, diversity, and evolution of a codebase as a li
 - [x] Create git hook
 - [x] Create a script to analyze the commit
 - [x] Create a script to generate garden feeding data from git commit analysis
-- [ ] Create garden visualization that grows with every feeding
-- [ ] Create a script to publish garden visualization to GitHub Pages
+- [x] Create garden visualization that grows with every feeding
+- [x] Create a script to publish garden visualization to GitHub Pages
 - [x] Create an installation script that sets the commit hook and initializes the garden
 - [ ] Implement the generation scripts in GitHub actions workflow step
 
@@ -56,7 +56,7 @@ see the following pseudocode for calculating plant location and coloring:
 hashcode = hash(repoName + "::" + filePath)
 x = hashcode % width
 y = (hashcode / width) % height
-hsv_h = ColoMap.getByExtension(fileExtension)
+hsv_h = ColorMap.getByExtension(fileExtension)
 hsv_v = normalize(linesAdded + linesRemoved, 80)
 hsv_s = normalize(complexity, 80)
 ```
