@@ -13,12 +13,12 @@ Git Garden visualizes the health, diversity, and evolution of a codebase as a li
 - “Technical debt shows up as weeds and dark patches.”
 
 ## TODO
-- [ ] Create git hook
-- [ ] Create a script to analyze the commit
+- [x] Create git hook
+- [x] Create a script to analyze the commit
 - [ ] Create a script to generate garden feeding data from git commit analysis
 - [ ] Create garden visualization that grows with every feeding
 - [ ] Create a script to publish garden visualization to GitHub Pages
-- [ ] Create an installation script that sets the commit hook and initializes the garden
+- [x] Create an installation script that sets the commit hook and initializes the garden
 - [ ] Implement the generation scripts in GitHub actions workflow step
 
 ## Installation
