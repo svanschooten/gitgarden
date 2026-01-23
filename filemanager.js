@@ -1,8 +1,6 @@
 import fs from 'fs';
 import { loadImage } from 'canvas';
 
-export const localFileManager = new LocalFileManager();
-
 class LocalFileManager extends FileMngrInterface {
   async loadGarden(filename) {
     return loadImage(filename);
@@ -37,3 +35,5 @@ class FileMngrInterface {
     console.warn('WARNING! Function "' + fName + '" is not overridden in ' + this.constructor.name);
   }
 }
+
+export const localFileManager = new LocalFileManager();
