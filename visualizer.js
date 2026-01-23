@@ -3,13 +3,14 @@ import { readFile } from 'fs/promises';
 import fs from 'fs';
 
 let colormap = JSON.parse(await readFile("colormap.json", "utf8"));
+let config = JSON.parse(await readFile("config.json", "utf8"));
 
-export async function generateGarden(commit, res){
-    const canvas = createCanvas(512, 512);
+export async function generateGarden(commit){
+    const canvas = createCanvas(config.width, config.height);
     const ctx = canvas.getContext('2d');
     
     await loadGarden(ctx)
-    // addCommitToGarden(ctx, commit)
+    addCommitToGarden(ctx, commit)
 
     saveGarden(canvas)
 };
@@ -25,6 +26,13 @@ async function loadGarden(ctx){
     }
 }
 
+function initNewGarden(ctx){
+    ctx.fillStyle = getRgba(colormap.base);
+    ctx.fillRect(0, 0, config.width, config.height);
+    console.log("Welcome in your new garden, take care of it well!")
+    return ctx;
+}
+
 function saveGarden(canvas){
     const buffer = canvas.toBuffer('image/png');
     fs.writeFileSync('garden.png', buffer);
@@ -33,16 +41,9 @@ function saveGarden(canvas){
 }
 
 function addCommitToGarden(ctx, commit){
-    
+    console.log('Growing the garden..')
 }
 
-
-function initNewGarden(ctx){
-    ctx.fillStyle = getRgba(colormap.base);
-    ctx.fillRect(0, 0, 512, 512);
-    console.log("Welcome in your new garden, take care of it well!")
-    return ctx;
-}
 
 function getRgba(item){
     return `rgba(${item[0]}, ${item[1]}, ${item[2]})`

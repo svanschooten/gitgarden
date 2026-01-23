@@ -11,7 +11,7 @@ const __dirname = dirname(__filename);
 app.use(express.static(__dirname)); 
 
 app.get('/', async (req, res) => {
-  await generateGarden(req, res)
+  await generateGarden(req)
   res.send(`
     <!DOCTYPE html>
     <html>
