@@ -1,30 +1,27 @@
 import express from 'express';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { generateGarden } from './visualizer.js';
 
 const app = express();
 
-app.get('/', (req, res) => {
+// Get __dirname equivalent in ES6
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+app.use(express.static(__dirname)); 
+
+app.get('/', async (req, res) => {
+  await generateGarden(req, res)
   res.send(`
     <!DOCTYPE html>
     <html>
       <body>
         <h1>Bit Garden</h1>
-        <img src="/generate" alt="Generated">
+        <img src="/garden.png" alt="Generated">
         <br><br>
-        <script>
-          function updateImage() {
-            const value = Math.floor(Math.random() * 100);
-            document.querySelector('img').src = '/generate;
-          }
-        </script>
       </body>
     </html>
   `);
-});
-
-app.get('/generate', (req, res) => {
-    res.setHeader('Content-Type', 'image/png');
-    generateGarden(req, res)
 });
 
 app.listen(3000, () => {
