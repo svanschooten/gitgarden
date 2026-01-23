@@ -2,28 +2,28 @@
   "plants": {
     "grass": {
       "extensions": [".js", ".ts"],
-      "color": [115, 80, 80]
+      "color": [33, 212, 30]
     },
     "daisy": {
       "extensions": [".java"],
-      "color": [50, 67, 92]
+      "color": [255, 255, 255]
     },
     "lavender": {
       "extensions": [".py"],
-      "color": [267.5, 32.4, 71.4]
+      "color": [176, 131, 255]
     },
     "cornflower": {
       "extensions": [".go"],
-      "color": [180, 90, 50.2]
+      "color": [50, 95, 255]
     },
     "tulip": {
       "extensions": [".rs"],
-      "color": [38.8, 90, 100]
+      "color": [255, 142, 0]
     },
     "dirt": {
       "extensions": [".md", ".yml", ".yaml", ".json"],
-      "color": [0, 30, 50.2]
+      "color": [110, 61, 0]
     }
   },
-  "base": [17.4, 60.7, 95.7]
+  "base": [138, 204, 255]
 }
