@@ -48,15 +48,13 @@ function saveGarden(canvas){
 function addCommitToGarden(ctx, commit){
     console.log('Growing the garden..')
     for (const diff of commit) {
-        let growCycle = analyzeDiff(diff)
-        ctx.fillStyle = getRgba(growCycle.plant.color);
-        ctx.fillRect(growCycle.coords.x, growCycle.coords.x, config.width, config.height);
+        drawFlower(ctx, analyzeDiff(diff))
     }
 }
 
 function drawFlower(ctx, growCycle){
     ctx.beginPath();
-    ctx.arc(growCycle.coords.x, growCycle.coords.y, calculateSize(growcycle.complexity), 0, 2 * Math.PI);
+    ctx.arc(growCycle.coords.x, growCycle.coords.y, calculateSize(growCycle.complexity), 0, 2 * Math.PI);
     ctx.fillStyle = getRgba(growCycle.plant.color);
     ctx.fill();
     ctx.lineWidth = 4;
