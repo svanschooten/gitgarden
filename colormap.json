@@ -1,0 +1,29 @@
+{
+  "map": {
+    "grass": {
+      "extensions": [".js", ".ts"],
+      "color": [115, 80, 80]
+    },
+    "daisy": {
+      "extensions": [".java"],
+      "color": [50, 67, 92]
+    },
+    "lavender": {
+      "extensions": [".py"],
+      "color": [267.5, 32.4, 71.4]
+    },
+    "cornflower": {
+      "extensions": [".go"],
+      "color": [180, 90, 50.2]
+    },
+    "tulip": {
+      "extensions": [".rs"],
+      "color": [38.8, 90, 100]
+    },
+    "dirt": {
+      "extensions": [".md", ".yml", ".yaml", ".json"],
+      "color": [0, 30, 50.2]
+    }
+  },
+  "base": [17.4, 60.7, 95.7]
+}
