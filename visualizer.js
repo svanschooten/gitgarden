@@ -1,12 +1,14 @@
 import { createCanvas } from 'canvas';
 import { localFileManager } from './filemanager.js';
 import { analyzeDiff } from './garden.js';
-import { readFile } from 'fs/promises';
 import fs from 'fs';
+import path from 'path';
+import { GitGardenConfig, PlantMap } from './util.js';
 
-let colormap = JSON.parse(await readFile("colormap.json", "utf8"));
-let config = JSON.parse(await readFile("config.json", "utf8"));
+let colormap = new PlantMap();
+let config = new GitGardenConfig();
 let filename = 'garden.png'
+const __dirname = import.meta.dirname;
 
 // change filemanager based on your usage, the default is the LocalFileManager.
 // new managers can be added in filemanager.js
@@ -23,7 +25,7 @@ export async function generateGarden(commit){
 };
 
 async function loadGarden(ctx){
-    if (fs.existsSync(filename)) {
+    if (fs.existsSync(path.join(__dirname, 'garden.png'))) {
         console.log('Loading previous garden')
         let previousGarden = await filemanager.loadGarden(filename)
         ctx.drawImage(previousGarden, 0, 0);
@@ -53,23 +55,17 @@ function addCommitToGarden(ctx, commit){
 }
 
 function drawFlower(ctx, growCycle){
-    let plantColor = growCycle.plant.color
-    if(plantColor == null){
-        plantColor = colormap.unknown
-    }
+    let plantColor = growCycle.plant != null ? growCycle.plant.color : colormap.unknown
     ctx.beginPath();
     ctx.arc(growCycle.coords.x, growCycle.coords.y, calculateSize(growCycle.complexity), 0, 2 * Math.PI);
     ctx.fillStyle = getRgba(plantColor);
     ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = getRgba(plantColor-10);
-    ctx.stroke();
 }
 
 function calculateSize(complexity){
     const max_size = config.width * 0.1;
-    const size = complexity * max_size
-    return size == 0 ? 1 : size
+    const size = Math.round(complexity * max_size)
+    return size < 1 ? 1 : size
 }
 
 
