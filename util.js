@@ -1,4 +1,7 @@
 import {readFileSync} from "fs";
+import { join } from 'path';
+
+const __dirname = import.meta.dirname;
 
 class GitGardenFileDiff {
     file;
@@ -57,10 +60,12 @@ class Plant {
 export class PlantMap {
     plants;
     base;
+    unknown;
     constructor() {
-        const colorMapDefinition = JSON.parse(readFileSync("colormap.json", "utf8"));
+        const colorMapDefinition = JSON.parse(readFileSync(join(__dirname, "colormap.json"), "utf8"));
         this.plants = Object.entries(colorMapDefinition.plants).map(([name, plant]) => new Plant(name, plant.color, plant.extensions));
         this.base = colorMapDefinition.base;
+        this.unknown = colorMapDefinition.unknown;
     }
     getByName(name) {
         return this.plants[name];
@@ -79,7 +84,7 @@ export class GitGardenConfig {
     height;
     max_score;
     constructor() {
-        const config = JSON.parse(readFileSync("config.json", "utf8"));
+        const config = JSON.parse(readFileSync(join(__dirname, "config.json"), "utf8"));
         this.width = config.width;
         this.height = config.height;
         this.max_score = config.max_score;
