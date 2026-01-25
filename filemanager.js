@@ -1,5 +1,8 @@
 import fs from 'fs';
 import { loadImage } from 'canvas';
+import { join } from 'path';
+
+const __dirname = import.meta.dirname;
 
 class FileMngrInterface {
   /**
@@ -28,11 +31,11 @@ class FileMngrInterface {
 
 class LocalFileManager extends FileMngrInterface {
   async loadGarden(filename) {
-    return loadImage(filename);
+    return loadImage(join(__dirname, filename));
   }
 
   async saveGarden(filename, buffer) {
-    fs.writeFileSync(filename, buffer);
+    fs.writeFileSync(join(__dirname, filename), buffer);
   }
 }
 
