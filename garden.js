@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 
 // Configuration
-const SEED = 453214123413;
+const __dirname = import.meta.dirname;
 const {repo, target, diffs} = new GitGardenArguments();
 const plantMap = new PlantMap();
 const config = new GitGardenConfig();
@@ -53,7 +53,7 @@ await generateGarden(diffs)
 function run(cmd, options = {}) {
     return execSync(cmd, { stdio: 'inherit', ...options });
 }
-const tempDir = path.join(process.cwd(), 'gh-pages-temp');
+const tempDir = path.join(__dirname, 'gh-pages-temp');
 if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true });
 fs.mkdirSync(tempDir);
 
@@ -80,12 +80,11 @@ if (!branchExists) {
 }
 
 fs.copyFileSync(
-    path.join(process.cwd(), 'garden.png'),
+    path.join(__dirname, 'garden.png'),
     path.join(tempDir, 'garden.png')
 );
-
 run(`git add .`, { cwd: tempDir });
-run(`git commit -m "Update GitGarden" || true`, { cwd: tempDir });
+run(`git commit -m "[skip garden] Update GitGarden" || true`, { cwd: tempDir });
 run(`git push origin gh-pages`, { cwd: tempDir });
 if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true });
 
