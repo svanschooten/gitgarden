@@ -23,8 +23,16 @@
     "dirt": {
       "extensions": [".md", ".yml", ".yaml", ".json"],
       "color": [110, 61, 0]
+    },
+    "dandelion": {
+      "extensions": [ "html", ".css"],
+      "color": [255, 234, 11]
+    },
+    "rock": {
+      "extensions": [".php"],
+      "color": [128, 128, 128]
     }
   },
   "base": [138, 204, 255],
-  "unknown": [214, 213, 167]
+  "unknown": [0,0,0]
 }
