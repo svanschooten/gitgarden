@@ -1,0 +1,9 @@
+name: Maintain Git Garden
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  maintain-garden:
+    uses: svanschooten/gitgarden/.github/workflows/maintain-gitgarden.yml@main
