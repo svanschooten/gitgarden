@@ -1,12 +1,11 @@
 import { createCanvas } from 'canvas';
 import { localFileManager } from './filemanager.js';
-import { analyzeDiff } from './garden.js';
+import { analyzeDiff } from './analyzer.js';
 import fs from 'fs';
-import path from 'path';
-import { GitGardenConfig, PlantMap } from './util.js';
+import { loadConfig, loadColorMap } from './util.js';
 
-let colormap = new PlantMap();
-let config = new GitGardenConfig();
+const colormap = loadColorMap();
+const config = loadConfig();
 let filename = 'garden.png'
 const __dirname = import.meta.dirname;
 
@@ -14,12 +13,12 @@ const __dirname = import.meta.dirname;
 // new managers can be added in filemanager.js
 let filemanager = localFileManager;
 
-export async function generateGarden(commit){
+export async function generateGarden(commit, repoName){
     const canvas = createCanvas(config.width, config.height);
     const ctx = canvas.getContext('2d');
     
     await loadGarden(ctx)
-    addCommitToGarden(ctx, commit)
+    addCommitToGarden(ctx, commit, repoName)
 
     saveGarden(canvas)
 };
@@ -47,10 +46,10 @@ function saveGarden(canvas){
     console.log(`Saved garden to ${filename}`);
 }
 
-function addCommitToGarden(ctx, commit){
+function addCommitToGarden(ctx, commit, repoName){
     console.log('Growing the garden..')
     for (const diff of commit) {
-        drawFlower(ctx, analyzeDiff(diff))
+        drawFlower(ctx, analyzeDiff(diff, repoName))
     }
 }
 
@@ -60,6 +59,9 @@ function drawFlower(ctx, growCycle){
     ctx.arc(growCycle.coords.x, growCycle.coords.y, calculateSize(growCycle.complexity), 0, 2 * Math.PI);
     ctx.fillStyle = getRgba(plantColor);
     ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = getRgba(growCycle.plant.color, 10);
+    ctx.stroke();
 }
 
 function calculateSize(complexity){
@@ -68,7 +70,9 @@ function calculateSize(complexity){
     return size < 1 ? 1 : size
 }
 
-
-function getRgba(item){
-    return `rgba(${item[0]}, ${item[1]}, ${item[2]})`
+function getRgba(item, darken = 0){
+    if (Array.isArray(item)) {
+        return `rgba(${Math.max(0, item[0] - darken)}, ${Math.max(0, item[1] - darken)}, ${Math.max(0, item[2] - darken)})`;
+    }
+    return `rgba(${item}, ${item}, ${item})`;
 }

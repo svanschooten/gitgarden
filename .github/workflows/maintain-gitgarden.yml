@@ -1,0 +1,81 @@
+name: Maintain GitGarden
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: 'Target repository URL where the garden will be published'
+        required: false
+        type: string
+    secrets:
+      GARDEN_TOKEN:
+        description: 'Personal Access Token with push permissions (if target is a different repository)'
+        required: false
+
+jobs:
+  maintain-gitgarden:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout caller repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Checkout Git Garden tool
+        uses: actions/checkout@v4
+        with:
+          repository: svanschooten/gitgarden
+          path: .git-garden-tool
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd .git-garden-tool
+          npm install
+
+      - name: Generate and Publish Git Garden
+        run: |
+          REPO_NAME=$(basename $GITHUB_REPOSITORY)
+          
+          # Determine target and token
+          TARGET="${{ inputs.target }}"
+          TOKEN="${{ secrets.GARDEN_TOKEN }}"
+          if [ -z "$TOKEN" ]; then
+            TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          fi
+          
+          if [ -z "$TARGET" ]; then
+            # Use the current repository as default
+            TARGET="https://x-access-token:$TOKEN@github.com/$GITHUB_REPOSITORY.git"
+          else
+            # If target is provided and is a GitHub HTTPS URL, inject token
+            if [[ "$TARGET" == https://github.com/* ]]; then
+              TARGET="https://x-access-token:$TOKEN@${TARGET#https://}"
+            fi
+          fi
+          
+          # Prepare arguments
+          args=(--repo "$REPO_NAME" --target "$TARGET")
+          
+          # Get list of changed files in the last commit
+          for f in $(git diff-tree --no-commit-id --name-only -r HEAD); do
+            if [ -f "$f" ]; then
+              # Get file content and escape it for command line
+              content=$(git show HEAD:"$f" 2>/dev/null | sed 's/"/\\\\"/g' | tr '\n' ' ')
+              args+=(--file "$f" --diff "$content")
+            fi
+          done
+          
+          if [ ${#args[@]} -le 2 ]; then
+            echo "No changed files to analyze."
+            exit 0
+          fi
+          
+          node .git-garden-tool/src/garden.js "${args[@]}"

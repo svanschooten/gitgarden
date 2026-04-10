@@ -141,3 +141,6 @@ vite.config.ts.timestamp-*
 .idea
 
 gh-pages-temp
+
+.git-garden-tool/node_modules
+gh-pages-temp/

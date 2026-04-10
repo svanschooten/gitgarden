@@ -2,9 +2,12 @@
   "name": "git-garden",
   "version": "1.0.0",
   "description": "",
-  "main": "garden.js.js",
+  "main": "src/garden.js",
+  "bin": {
+    "git-garden": "./cli.js"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/*.js"
   },
   "keywords": [],
   "author": "",
@@ -12,6 +15,7 @@
   "type": "module",
   "dependencies": {
     "canvas": "^3.2.1",
-    "indent-complexity": "^0.1.1"
+    "indent-complexity": "^0.1.1",
+    "js-yaml": "^4.1.1"
   }
 }

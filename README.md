@@ -12,41 +12,55 @@ Git Garden visualizes the health, diversity, and evolution of a codebase as a li
 - “Healthy teams grow diverse gardens.”
 
 ## TODO
-- [x] Create git hook
+- [x] Create GitHub Actions workflow to update the garden
 - [x] Create a script to analyze the commit
 - [x] Create a script to generate garden feeding data from git commit analysis
-- [x] Create garden visualization that grows with every feeding
-- [x] Create a script to publish garden visualization to GitHub Pages
+- [ ] Create garden visualization that grows with every feeding
+- [ ] Create a script to publish garden visualization to GitHub Pages
 - [x] Create an installation script that sets the commit hook and initializes the garden
 - [ ] Implement the generation scripts in GitHub actions workflow step
 
 ## Installation
-The garden visualization is generated and then pushed to GitHub pages on a predefined page.
-### Local usage
-Use the included installation script to set up the git hook and initialize the garden visualization.
-See [install.sh](./install.sh) for more details, it sets the global template directory for git to be `~/.git-templates`.
-So if you have a pre-existing global template directory, it will be overwritten.
-After each commit, the garden visualization will be updated.
-
-### Github actions usage
-Create a workflow file in your repository that runs the script after each commit.
-For example:
-```yaml
-- name: Generate Git Garden
-  run: |
-    REPO_NAME=$(basename $GITHUB_REPOSITORY)
-    args=(--repo "$REPO_NAME")
-    for f in $(git diff --name-only $GITHUB_SHA~1 $GITHUB_SHA); do
-      diff=$(git diff $GITHUB_SHA~1 $GITHUB_SHA -- "$f" | sed 's/"/\\"/g' | tr '\n' ' ')
-      args+=(--file "$f" --diff "$diff")
-    done
-    args+=(--target "<target repository>")
-    node garden.js "${args[@]}"
+### 1. Install Git Garden CLI globally
+Run the installation script in the Git Garden directory to install the CLI globally:
+```bash
+./install.sh
 ```
+This will install the `git-garden` command on your system.
+
+### 2. Enable Git Garden for a repository
+In the repository where you want to grow a garden, run:
+```bash
+git-garden install
+```
+Alternatively, you can specify a branch if it's different from `main` or `master`:
+```bash
+git-garden install --branch <branch-name>
+```
+This will create:
+- A GitHub Actions workflow in `.github/workflows/git-garden.yml` that uses our published reusable workflow.
+- A configuration file `.gitgarden-config.yaml` for user-specific settings (e.g., ignoring static files).
+
+The garden visualization will now be automatically updated on every push to the specified branch (or `main` and `master` by default).
+The visualization is hosted on the `gh-pages` branch of the repository.
+
+### 3. Disable Git Garden for a repository
+If you want to remove Git Garden from a repository, run:
+```bash
+git-garden remove
+```
+
+## Github actions usage
+Git Garden now uses a published reusable workflow automatically after running `git-garden install`. The generated workflow calls `svanschooten/gitgarden/.github/workflows/maintain-gitgarden.yml`, which handles:
+1.  Cloning the target repository.
+2.  Loading the previous garden state.
+3.  Analyzing the latest commit.
+4.  Growing the garden with new plants.
+5.  Publishing the updated visualization back to `gh-pages`.
 
 ## Garden Visualization
 ### Color mapping
-Colorization and file extension mapping is based on [this](colormap.json) file containing color mappings for various file types.
+Colorization and file extension mapping is based on [this](colormap.yaml) file containing color mappings for various file types.
 We used [colorhexa](https://www.colorhexa.com/) to determine the color mappings in HSV color space.
 
 ### Garden specifications
@@ -65,13 +79,12 @@ This is deterministic and language-agnostic.
 
 ## Code organization
 Everything is split out into separate files to keep concerns separate and make it easier to understand.
-- [garden.js](./garden.js): The main script that imports, orchestrates, and runs the other scripts to generate the garden visualization.
-- [install.sh](./install.sh): The installation script that sets up the git hook and other basic configuration.
-- [util.js](./util.js): Utility functions used by the other scripts, like loading JSON files or parsing command line arguments.
-- [visualizer.js](./visualizer.js): The script that generates the garden visualization in the form of a PNG image.
-- [server.js](./server.js): The Express server that serves the garden visualization for testing and debugging purposes.
-- [config.json](./config.json): Configuration file for the garden generation.
-- [colormap.json](./colormap.json): Plant color and extension mapping configuration.
+- [garden.js](./src/garden.js): The main script that imports, orchestrates, and runs the other scripts to generate the garden visualization.
+- [install.sh](./install.sh): The installation script that installs the Git Garden CLI globally and cleans up old environment variables.
+- [util.js](./src/util.js): Utility functions used by the other scripts, like loading YAML configuration files and parsing command line arguments.
+- [visualizer.js](./src/visualizer.js): The script that generates the garden visualization in the form of a PNG image.
+- [config.yaml](./config.yaml): Configuration file for the garden generation.
+- [colormap.yaml](./colormap.yaml): Plant color and extension mapping configuration.
 
 
 ## Contributing

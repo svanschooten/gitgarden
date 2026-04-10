@@ -1,0 +1,4 @@
+width: 512
+height: 512
+max_score: 200
+min_distance: 35
