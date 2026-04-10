@@ -42,14 +42,15 @@ export async function processGarden(repo, target, diffs) {
         console.log('Creating gh-pages branch...');
         run(`git checkout --orphan gh-pages`, { cwd: tempDir });
         run(`git rm -rf . || true`, { cwd: tempDir });
-        fs.writeFileSync(
-            path.join(tempDir, 'index.html'),
-            `<!doctype html><html><head><title>GitGarden</title><style>
+    }
+
+    fs.writeFileSync(
+        path.join(tempDir, 'index.html'),
+        `<!doctype html><html><head><title>GitGarden</title><style>
     body { background:#111; color:#eee; text-align:center; }
     img { max-width:95vw; }
   </style></head><body><h1>🌱 GitGarden (renewed!) </h1><img src="garden.png" /></body></html>`
-        );
-    }
+    );
 
     fs.copyFileSync(
         path.join(process.cwd(), 'garden.png'),
