@@ -22,12 +22,16 @@ test('processGarden generates and "publishes" to a local repo', async () => {
         { file: 'test.js', diff: '@@ -0,0 +1,1 @@\n+console.log("hello");' }
     ];
 
-    process.env.GIT_AUTHOR_NAME = 'Test User';
-    process.env.GIT_AUTHOR_EMAIL = 'test@example.com';
-    process.env.GIT_COMMITTER_NAME = 'Test User';
-    process.env.GIT_COMMITTER_EMAIL = 'test@example.com';
-
     const originalCwd = process.cwd();
+    const originalAuthorName = process.env.GIT_AUTHOR_NAME;
+    const originalAuthorEmail = process.env.GIT_AUTHOR_EMAIL;
+    const originalCommitterName = process.env.GIT_COMMITTER_NAME;
+    const originalCommitterEmail = process.env.GIT_COMMITTER_EMAIL;
+
+    delete process.env.GIT_AUTHOR_NAME;
+    delete process.env.GIT_AUTHOR_EMAIL;
+    delete process.env.GIT_COMMITTER_NAME;
+    delete process.env.GIT_COMMITTER_EMAIL;
     process.chdir(testDir);
 
     try {
@@ -44,6 +48,11 @@ test('processGarden generates and "publishes" to a local repo', async () => {
         if (fs.existsSync(verifyDir)) fs.rmSync(verifyDir, { recursive: true, force: true });
     } finally {
         process.chdir(originalCwd);
+        if (originalAuthorName) process.env.GIT_AUTHOR_NAME = originalAuthorName;
+        if (originalAuthorEmail) process.env.GIT_AUTHOR_EMAIL = originalAuthorEmail;
+        if (originalCommitterName) process.env.GIT_COMMITTER_NAME = originalCommitterName;
+        if (originalCommitterEmail) process.env.GIT_COMMITTER_EMAIL = originalCommitterEmail;
+        
         if (fs.existsSync(testDir)) fs.rmSync(testDir, { recursive: true, force: true });
         if (fs.existsSync(targetRepo)) fs.rmSync(targetRepo, { recursive: true, force: true });
     }

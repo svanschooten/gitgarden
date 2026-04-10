@@ -56,6 +56,8 @@ export async function processGarden(repo, target, diffs) {
         path.join(tempDir, 'garden.png')
     );
 
+    run(`git config user.name "Git Garden Bot"`, { cwd: tempDir });
+    run(`git config user.email "garden-bot@users.noreply.github.com"`, { cwd: tempDir });
     run(`git add .`, { cwd: tempDir });
     run(`git commit -m "Update GitGarden" || true`, { cwd: tempDir });
     run(`git push origin gh-pages`, { cwd: tempDir });
