@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { generateStartingPoints, loadConfig, loadColorMap, loadLocalConfig, GitGardenConfig } from '../src/util.js';
+import { generateStartingPoints, loadConfig, loadColorMap, GitGardenConfig } from '../src/util.js';
 import fs from 'fs';
 import path from 'path';
 

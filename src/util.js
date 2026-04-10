@@ -1,7 +1,7 @@
-import {readFileSync, existsSync} from "fs";
-import { fileURLToPath } from 'url';
+import {existsSync, readFileSync} from "fs";
+import {fileURLToPath} from 'url';
 import path from 'path';
-import { execSync } from 'child_process';
+import {execSync} from 'child_process';
 import yaml from 'js-yaml';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,7 +32,7 @@ export function generateStartingPoints(count, width, height, minDistance) {
         const y = Math.floor(Math.random() * height);
         const tooClose = points.some(p => Math.sqrt(Math.pow(p.x - x, 2) + Math.pow(p.y - y, 2)) < minDistance);
         if (!tooClose) {
-            points.push({ x_start: x, y_start: y });
+            points.push({ x: x, y: y });
         }
         attempts++;
     }

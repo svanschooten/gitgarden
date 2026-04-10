@@ -1,13 +1,13 @@
-import { createCanvas } from 'canvas';
-import { localFileManager } from './filemanager.js';
-import { analyzeDiff } from './analyzer.js';
+import {createCanvas} from 'canvas';
+import {localFileManager} from './filemanager.js';
+import {analyzeDiff} from './analyzer.js';
 import fs from 'fs';
-import { loadConfig, loadColorMap } from './util.js';
+import path from 'path';
+import {loadColorMap, loadConfig} from './util.js';
 
 const colormap = loadColorMap();
 const config = loadConfig();
 let filename = 'garden.png'
-const __dirname = import.meta.dirname;
 
 // change filemanager based on your usage, the default is the LocalFileManager.
 // new managers can be added in filemanager.js
@@ -24,7 +24,8 @@ export async function generateGarden(commit, repoName){
 };
 
 async function loadGarden(ctx){
-    if (fs.existsSync(path.join(__dirname, 'garden.png'))) {
+    const gardenPath = path.join(process.cwd(), filename);
+    if (fs.existsSync(gardenPath)) {
         console.log('Loading previous garden')
         let previousGarden = await filemanager.loadGarden(filename)
         ctx.drawImage(previousGarden, 0, 0);

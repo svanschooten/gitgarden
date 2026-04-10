@@ -1,11 +1,10 @@
-import { analyzeDiffComplexity } from 'indent-complexity';
-import { GitGardenConfig, PlantMap, Diff } from './util.js';
+import {analyzeDiffComplexity} from 'indent-complexity';
+import {Diff, GitGardenConfig, PlantMap} from './util.js';
 import crypto from "crypto";
 
 const plantMap = new PlantMap();
 const config = new GitGardenConfig();
 
-// Normalization functions
 function normalizeComplexity(score, max = 200) {
     return Math.min(score / max, 1);
 }
@@ -25,8 +24,7 @@ function filePathToCoords(filePath, width, height, startingPoint) {
         };
     }
     
-    // Use the starting point as a base and add a deterministic offset based on the file path
-    const range = 100; // Cluster radius
+    const range = 100;
     const xOffset = (num % (range * 2)) - range;
     const yOffset = (Math.floor(num / range) % (range * 2)) - range;
 

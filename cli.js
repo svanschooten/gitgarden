@@ -78,15 +78,17 @@ async function install(branch) {
         const points = generateStartingPoints(plantNames.length + 1, config.width, config.height, minDistance);
 
         const configContent = {
-            starting_points: {
-                base: {
+            starting_points: [
+                {
+                    type: 'base',
                     ...points.pop()
                 }
-            }
+            ]
         };
-        plantNames.forEach((name) => configContent.starting_points[name] = {
+        plantNames.forEach((name) => configContent.starting_points.push({
+            type: name,
             ...points.pop()
-        });
+        }));
         
         fs.writeFileSync(configFile, `# Git Garden Configuration
 # Define static files or directories that should not be treated as growing plants
@@ -102,11 +104,9 @@ static_paths: []
 on:
   push:
     branches: ${branchList}
-  pull_request_target:
-    branches: ${branchList}
 
 jobs:
-  maintain-gitgarden:
+  maintain-garden:
     uses: svanschooten/gitgarden/.github/workflows/maintain-gitgarden.yml@main
 `;
 
