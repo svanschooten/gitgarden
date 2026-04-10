@@ -47,7 +47,7 @@ export async function processGarden(repo, target, diffs) {
             `<!doctype html><html><head><title>GitGarden</title><style>
     body { background:#111; color:#eee; text-align:center; }
     img { max-width:95vw; }
-  </style></head><body><h1>🌱 GitGarden</h1><img src="garden.png" /></body></html>`
+  </style></head><body><h1>🌱 GitGarden (renewed!) </h1><img src="garden.png" /></body></html>`
         );
     }
 
