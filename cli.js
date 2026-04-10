@@ -56,7 +56,7 @@ async function install(branch) {
     }
 
     const workflowDir = path.join(repoRoot, '.github', 'workflows');
-    const workflowFile = path.join(workflowDir, 'git-garden.yml');
+    const workflowFile = path.join(workflowDir, 'maintain-garden.yml');
     const configFile = path.join(repoRoot, '.gitgarden-config.yaml');
     const stateFile = path.join(repoRoot, '.gitgarden-state.yaml');
 
@@ -107,11 +107,13 @@ on:
 
 jobs:
   maintain-garden:
-    uses: svanschooten/gitgarden/.github/workflows/maintain-gitgarden.yml@main
+    permissions:
+      contents: write
+    uses: svanschooten/gitgarden/.github/workflows/gitgarden.yml@main
 `;
 
         fs.writeFileSync(workflowFile, workflowContent);
-        console.log('✓ Git Garden workflow installed in .github/workflows/git-garden.yml');
+        console.log('✓ Git Garden workflow installed in .github/workflows/maintain-garden.yml');
     }
 
     if (!fs.existsSync(stateFile)) {
@@ -146,14 +148,14 @@ jobs:
 
 async function remove() {
     const repoRoot = process.cwd();
-    const workflowFile = path.join(repoRoot, '.github', 'workflows', 'git-garden.yml');
+    const workflowFile = path.join(repoRoot, '.github', 'workflows', 'maintain-garden.yml');
     const configYaml = path.join(repoRoot, '.gitgarden-config.yaml');
     const configYml = path.join(repoRoot, '.gitgarden-config.yml');
 
     let removed = false;
     if (fs.existsSync(workflowFile)) {
         fs.unlinkSync(workflowFile);
-        console.log('✓ Removed .github/workflows/git-garden.yml');
+        console.log('✓ Removed .github/workflows/maintain-garden.yml');
         removed = true;
     }
 

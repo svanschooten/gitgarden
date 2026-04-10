@@ -23,7 +23,10 @@ test('cli install and remove', async () => {
     execSync(`echo y | node ${cliPath} install`, { cwd: testRepo });
     
     assert.ok(fs.existsSync(path.join(testRepo, '.gitgarden-config.yaml')), 'Config file should exist');
-    assert.ok(fs.existsSync(path.join(testRepo, '.github', 'workflows', 'git-garden.yml')), 'Workflow file should exist');
+    assert.ok(fs.existsSync(path.join(testRepo, '.github', 'workflows', 'maintain-garden.yml')), 'Workflow file should exist');
+    const workflowContent = fs.readFileSync(path.join(testRepo, '.github', 'workflows', 'maintain-garden.yml'), 'utf8');
+    assert.ok(workflowContent.includes('permissions:'), 'Workflow should have permissions');
+    assert.ok(workflowContent.includes('contents: write'), 'Workflow should have contents: write permission');
     assert.ok(fs.existsSync(path.join(testRepo, '.gitgarden-state.yaml')), 'State file should exist');
     assert.ok(fs.existsSync(path.join(testRepo, '.gitignore')), 'Gitignore should exist');
 
@@ -31,7 +34,7 @@ test('cli install and remove', async () => {
     assert.ok(configContent.includes('- type: base'), 'Config should have array structure with type base');
 
     execSync(`node ${cliPath} remove`, { cwd: testRepo });
-    assert.ok(!fs.existsSync(path.join(testRepo, '.github', 'workflows', 'git-garden.yml')), 'Workflow file should be removed');
+    assert.ok(!fs.existsSync(path.join(testRepo, '.github', 'workflows', 'maintain-garden.yml')), 'Workflow file should be removed');
     assert.ok(!fs.existsSync(path.join(testRepo, '.gitgarden-config.yaml')), 'Config file should be removed');
     
     fs.rmSync(testRepo, { recursive: true, force: true });
@@ -49,7 +52,7 @@ test('cli install with --branch', async () => {
     
     execSync(`node ${cliPath} install --branch develop`, { cwd: testRepo });
     
-    const workflowContent = fs.readFileSync(path.join(testRepo, '.github', 'workflows', 'git-garden.yml'), 'utf8');
+    const workflowContent = fs.readFileSync(path.join(testRepo, '.github', 'workflows', 'maintain-garden.yml'), 'utf8');
     assert.ok(workflowContent.includes('branches: [ develop ]'), 'Should use develop branch');
     
     fs.rmSync(testRepo, { recursive: true, force: true });

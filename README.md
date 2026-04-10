@@ -51,7 +51,7 @@ git-garden remove
 ```
 
 ## Github actions usage
-Git Garden now uses a published reusable workflow automatically after running `git-garden install`. The generated workflow calls `svanschooten/gitgarden/.github/workflows/maintain-gitgarden.yml`, which handles:
+Git Garden now uses a published reusable workflow automatically after running `git-garden install`. The generated workflow calls `svanschooten/gitgarden/.github/workflows/gitgarden.yml`, which handles:
 1.  Cloning the target repository.
 2.  Loading the previous garden state.
 3.  Analyzing the latest commit.
