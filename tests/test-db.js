@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { openDb, getMeta, setMeta, upsertFile, deleteFile, clearAssignments, bulkInsertPatches, bulkInsertVacant } from '../src/db.js';
+import { openDb, getMeta, setMeta, upsertFile, deleteFile, clearAssignments, bulkInsertPatches } from '../src/db.js';
 
 const testRepoRoot = path.join(process.cwd(), 'test-repo-db');
 
@@ -24,7 +24,6 @@ test('Database operations', async (t) => {
     assert.ok(tables.includes('biome_seeds'));
     assert.ok(tables.includes('files'));
     assert.ok(tables.includes('file_patches'));
-    assert.ok(tables.includes('vacant_patches'));
   });
 
   await t.test('meta operations', () => {
@@ -71,19 +70,11 @@ test('Database operations', async (t) => {
     ]);
     const patches = db.prepare('SELECT * FROM file_patches WHERE file_id = ?').all(fileId);
     assert.strictEqual(patches.length, 2);
-
-    bulkInsertVacant(db, [
-      { biome: 'grass', px: 2, py: 0 },
-      { biome: 'lavender', px: 3, py: 0 }
-    ]);
-    const vacant = db.prepare('SELECT * FROM vacant_patches').all();
-    assert.strictEqual(vacant.length, 2);
   });
 
   await t.test('clearAssignments', () => {
     clearAssignments(db);
     assert.strictEqual(db.prepare('SELECT COUNT(*) as count FROM file_patches').get().count, 0);
-    assert.strictEqual(db.prepare('SELECT COUNT(*) as count FROM vacant_patches').get().count, 0);
     // Files should still exist
     assert.strictEqual(db.prepare('SELECT COUNT(*) as count FROM files').get().count, 1);
   });

@@ -13,9 +13,8 @@ import { renderHtml } from './html.js';
  * @param {string} repoRoot 
  * @param {string} fromCommit 
  * @param {string} toCommit 
- * @param {number|null} overrideFillFactor
  */
-export async function generateGarden(repoRoot, fromCommit, toCommit, overrideFillFactor = null) {
+export async function generateGarden(repoRoot, fromCommit, toCommit) {
   console.time('total');
 
   // 1. Open DB
@@ -68,7 +67,7 @@ export async function generateGarden(repoRoot, fromCommit, toCommit, overrideFil
     // 8. Assign files to patches
     console.time('assign');
     // Plan says MVP always full reassign
-    fullAssignment(db, biomePatches, seeds, overrideFillFactor || config.fill_factor || 0.85);
+    fullAssignment(db, biomePatches, seeds);
     console.timeEnd('assign');
 
     // 9. Render PNG & HTML

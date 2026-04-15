@@ -18,8 +18,6 @@ export async function renderHtml(db, config, biomeColors, baseColor, gridW, grid
     JOIN files f ON f.id = fp.file_id
   `).all();
 
-  const vacant = db.prepare(`SELECT px, py, biome FROM vacant_patches`).all();
-
   const biomeToExts = {};
   if (config.plant_map && config.plant_map.plants) {
     for (const [biome, details] of Object.entries(config.plant_map.plants)) {
@@ -31,8 +29,6 @@ export async function renderHtml(db, config, biomeColors, baseColor, gridW, grid
     SELECT biome, COUNT(*) as patch_count 
     FROM (
       SELECT f.biome FROM file_patches fp JOIN files f ON f.id = fp.file_id
-      UNION ALL
-      SELECT biome FROM vacant_patches
     )
     GROUP BY biome
   `).all();
@@ -79,23 +75,6 @@ export async function renderHtml(db, config, biomeColors, baseColor, gridW, grid
       fill,
       fileIds: patch.fileIds,
       biome: representativeFile.biome
-    });
-  }
-
-  // Vacant patches
-  for (const patch of vacant) {
-    const bColor = biomeColors[patch.biome] || [128, 128, 128];
-    const dimmed = [
-      Math.round(bColor[0] * 0.3 + baseColor[0] * 0.7),
-      Math.round(bColor[1] * 0.3 + baseColor[1] * 0.7),
-      Math.round(bColor[2] * 0.3 + baseColor[2] * 0.7)
-    ];
-    const fill = `rgb(${dimmed.join(',')})`;
-    patches.push({
-      x: patch.px * PATCH_SIZE,
-      y: patch.py * PATCH_SIZE,
-      fill,
-      biome: patch.biome
     });
   }
 

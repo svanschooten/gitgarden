@@ -54,18 +54,6 @@ export async function renderGarden(db, config, biomeColors, baseColor, gridW, gr
     drawPatch(png, patch.px, patch.py, color, PATCH_SIZE, width, height);
   }
 
-  // Draw vacant patches (dimmed)
-  const vacant = db.prepare(`SELECT px, py, biome FROM vacant_patches`).all();
-  for (const patch of vacant) {
-    const bColor = biomeColors[patch.biome] || [128, 128, 128];
-    const dimmed = [
-      Math.round(bColor[0] * 0.3 + baseColor[0] * 0.7),
-      Math.round(bColor[1] * 0.3 + baseColor[1] * 0.7),
-      Math.round(bColor[2] * 0.3 + baseColor[2] * 0.7)
-    ];
-    drawPatch(png, patch.px, patch.py, dimmed, PATCH_SIZE, width, height);
-  }
-
   // Write to files
   const buffer = PNG.sync.write(png);
   const gitgardenDir = path.join(repoRoot, '.gitgarden');

@@ -16,7 +16,6 @@ export function loadConfig(repoRoot, db) {
     height: 512,
     max_score: 200,
     min_distance: 35,
-    fill_factor: 0.85,
     static_paths: [],
     plant_map: {
       plants: {},

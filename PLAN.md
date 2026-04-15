@@ -87,16 +87,7 @@ CREATE TABLE IF NOT EXISTS file_patches (
   PRIMARY KEY (file_id, px, py)
 ) WITHOUT ROWID;
 
--- Vacant patches per biome (for incremental growth)
-CREATE TABLE IF NOT EXISTS vacant_patches (
-  biome  TEXT NOT NULL,
-  px     INTEGER NOT NULL,
-  py     INTEGER NOT NULL,
-  PRIMARY KEY (biome, px, py)
-) WITHOUT ROWID;
-
 CREATE INDEX IF NOT EXISTS idx_file_patches_file ON file_patches(file_id);
-CREATE INDEX IF NOT EXISTS idx_vacant_patches_biome ON vacant_patches(biome);
 CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 ```
 
@@ -106,9 +97,8 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 - [x] `getMeta(db, key)` / `setMeta(db, key, value)` — read/write meta table
 - [x] `upsertFile(db, { path, biome, line_count, health, last_merge })` — insert or update a file row
 - [x] `deleteFile(db, path)` — remove file + cascade deletes file_patches
-- [x] `clearAssignments(db)` — delete all rows from `file_patches` and `vacant_patches` (used before full reassignment)
+- [x] `clearAssignments(db)` — delete all rows from `file_patches` (used before full reassignment)
 - [x] `bulkInsertPatches(db, patches)` — batch insert into `file_patches` inside a transaction
-- [x] `bulkInsertVacant(db, vacant)` — batch insert into `vacant_patches` inside a transaction
 
 ---
 
@@ -125,7 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 - [x] `extensionToBiome` map: `{ '.js': 'grass', '.ts': 'grass', '.py': 'lavender', ... }`
 - [x] `biomeColors` map: `{ 'grass': [33, 212, 30], 'lavender': [176, 131, 255], ... }`
-- [x] `baseColor`: the background/vacant color from colormap (e.g., `[138, 204, 255]`)
+- [x] `baseColor`: the background color from colormap (e.g., `[138, 204, 255]`)
 
 ### 3.3 Config change detection
 
@@ -253,26 +243,23 @@ Sort a biome's patches by angle then distance from the biome seed. This creates 
 
 ### 7.2 Full assignment (first run, config change, or significant biome shift)
 
-- [x] Clear `file_patches` and `vacant_patches` tables
+- [x] Clear `file_patches` table
 - [x] For each biome:
     1. Fetch files in this biome from DB, ordered by `path ASC` (lexicographic sort clusters directory siblings together)
     2. Get the biome's spiral-sorted patch list
     3. Compute total lines across all files in this biome
-    4. `fill_factor` is a new config value with a default of `0.85`, add it to the cli, default config as `0.85` and tests.
-    5. `fill_factor = 0.85` — leaves 15% headroom for growth without immediate reassignment
-    6. For each file, compute `cellCount = Math.max(1, Math.round(file.lineCount / totalLines * totalBiomePatches * fill_factor))`
-    7. Walk the spiral-sorted patch list with a cursor, assigning `cellCount` consecutive patches to each file
-    8. Insert `file_patches` rows for assigned patches
-    9. Insert remaining patches into `vacant_patches`
+    4. For each file, compute `cellCount = Math.max(1, Math.round(file.lineCount / totalLines * totalBiomePatches))`
+    5. Walk the spiral-sorted patch list with a cursor, assigning `cellCount` consecutive patches to each file
+    6. Insert `file_patches` rows for assigned patches
 - [x] Wrap in a single transaction for performance
 
 ### 7.3 Incremental assignment (future optimization — noted here for schema compatibility)
 
 On subsequent runs where only a few files changed:
-- [ ] **Deleted files**: `DELETE FROM files` (cascades to `file_patches`), re-insert freed patches into `vacant_patches`
-- [ ] **Added files**: pop required patches from `vacant_patches` for that biome, insert `file_patches`
+- [ ] **Deleted files**: `DELETE FROM files` (cascades to `file_patches`)
+- [ ] **Added files**: assign from unassigned patches in biome if available, otherwise trigger full reassignment
 - [ ] **Renamed files**: `UPDATE files SET path = ? WHERE path = ?` (patches unchanged)
-- [ ] **Modified files**: update health only. If `line_count` changed > 20%, grow/shrink patch allocation from/into `vacant_patches`
+- [ ] **Modified files**: update health only. If `line_count` changed > 20%, grow/shrink patch allocation
 - [ ] After incremental changes, recompute weights and Voronoi. If any biome's proportion shifted > 5%, fall back to full reassignment
 
 > **MVP scope**: implement full assignment only. The schema supports incremental from day one; the logic is a follow-up.
@@ -319,10 +306,6 @@ On subsequent runs where only a few files changed:
     }
   }
   ```
-- [x] For vacant patches, draw with a dimmed version of the biome color (or the `baseColor`) to show biome territory
-
-### 8.3 Export
-
 - [x] Write to `{repoRoot}/.gitgarden/garden.png` using `png.pack().pipe(fs.createWriteStream(...))`
 - [x] Also write/copy to `{repoRoot}/docs/garden.png` if a `docs/` dir exists (for GitHub Pages)
 
@@ -332,79 +315,7 @@ On subsequent runs where only a few files changed:
 
 ### 9.1 Main pipeline
 
-```js
-export async function generateGarden(repoRoot, fromCommit, toCommit) {
-  console.time('total');
-
-  // 1. Open DB
-  console.time('db');
-  const db = openDb(repoRoot);
-  console.timeEnd('db');
-
-  // 2. Load config
-  console.time('config');
-  const { config, colormap, extensionToBiome, biomeColors, baseColor, configChanged } = loadConfig(repoRoot, db);
-  const { gridW, gridH, PATCH_SIZE } = deriveGridConstants(config);
-  console.timeEnd('config');
-
-  // 3. Scan repo files
-  console.time('scan');
-  const scannedFiles = scanFiles(repoRoot, extensionToBiome, config.static_paths);
-  console.timeEnd('scan');
-
-  // 4. Upsert files into DB (new files inserted, removed files deleted)
-  console.time('sync-files');
-  syncFiles(db, scannedFiles);  // diff against existing DB rows
-  console.timeEnd('sync-files');
-
-  // 5. Get diff stats and compute health
-  console.time('health');
-  if (fromCommit && toCommit) {
-    const diffStats = await getDiffStats(repoRoot, fromCommit, toCommit);
-    applyHealthDeltas(db, diffStats, config.max_score);
-  }
-  applyPassiveDeterioration(db, config.max_score);
-  console.timeEnd('health');
-
-  // 6. Compute biome weights
-  console.time('weights');
-  const seeds = computeSeedWeights(db);
-  console.timeEnd('weights');
-
-  // 7. Compute Voronoi map
-  console.time('voronoi');
-  const { biomeMap, biomes } = computeVoronoiMap(seeds, gridW, gridH);
-  const biomePatches = extractBiomePatches(biomeMap, biomes, gridW, gridH);
-  console.timeEnd('voronoi');
-
-  // 8. Assign files to patches
-  console.time('assign');
-  const needsFullReassign = configChanged || isFirstRun(db);
-  if (needsFullReassign) {
-    fullAssignment(db, biomePatches, seeds, config.max_score);
-  } else {
-    // MVP: always full reassign. Incremental is a future optimization.
-    fullAssignment(db, biomePatches, seeds, config.max_score);
-  }
-  console.timeEnd('assign');
-
-  // 9. Render PNG
-  console.time('render');
-  await renderGarden(db, config, biomeColors, baseColor, gridW, gridH, PATCH_SIZE);
-  console.timeEnd('render');
-
-  // 10. Update meta
-  setMeta(db, 'last_run_commit', toCommit || 'HEAD');
-  if (configChanged) {
-    setMeta(db, 'config_hash', currentConfigHash);
-    setMeta(db, 'colormap_hash', currentColormapHash);
-  }
-
-  console.timeEnd('total');
-}
-```
-
-### 9.2 `syncFiles` helper
+- [x] Implement `generateGarden` in `src/garden.js` to coordinate the generation pipeline.
 
 - [x] Compare scanned files against DB: `SELECT path FROM files`
 - [x] Files in scan but not DB → insert (new files)
@@ -466,7 +377,7 @@ export async function generateGarden(repoRoot, fromCommit, toCommit) {
 - [x] Verify: files in the same directory cluster together spatially
 - [x] Verify: health=0 files show withered color, health=max shows vibrant color
 - [x] Verify: adding 50 `.ts` files causes the `grass` biome to visually expand on next run
-- [x] Verify: deleting a file frees its patches (visible as vacant territory)
+- [x] Verify: deleting a file frees its patches
 - [x] Verify: the output image dimensions match the config `width` × `height`
 
 ---
@@ -542,7 +453,3 @@ Everything else: Node.js 24 built-ins (`fs/promises`, `path`, `child_process`, `
 | **Spiral sort over Hilbert curve** | Works with any image dimensions (no power-of-2 constraint). Visually matches the "garden growing outward from seed" metaphor. Simpler to implement and debug. |
 | **`file_patches` table over `cell_ranges`** | Absolute (px, py) coordinates are unambiguous and don't depend on a computed 1D ordering that could become stale. Slightly more rows but simpler logic. `WITHOUT ROWID` keeps it compact. |
 | **`PATCH_SIZE = 4` (4×4 pixel patches)** | Even the smallest file (1 line) is visible as a distinct block. Voronoi grid is 16× smaller than the pixel grid, making computation fast. |
-| **Full reassignment each run (MVP)** | For repos < 10k files, the full pipeline runs in < 500ms. Incremental assignment is a follow-up optimization that the schema already supports. |
-| **`pngjs` over `canvas`** | Eliminates native Cairo/Pango dependencies. Critical for CI environments where native compiles fail. Pixel-level control is sufficient for this use case. |
-| **SQLite from day one** | Avoids a painful YAML→SQLite migration later. WAL mode supports concurrent reads during CI. Schema is designed for both full and incremental assignment. |
-| **`FILL_FACTOR = 0.85`** | Leaves 15% vacant patches per biome so new files can be added without immediate reassignment. Tunable constant. |

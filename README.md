@@ -76,6 +76,13 @@ hsv_s = normalize(complexity, 80)
 ```
 This is deterministic and language-agnostic.
 
+### Design: File to Element Mapping
+The Git Garden maps a variable number of files to a set number of elements (patches) through a two-step process:
+1. **Weighted Voronoi Biome Partitioning**: The garden is divided into biomes (e.g., source code, documentation, configuration). Each biome is assigned an area proportional to the number of files it contains.
+2. **Proportional Patch Allocation**: Within each biome, files are sorted alphabetically. Each file is allocated a number of patches proportional to its line count (size). This ensures that larger files appear as larger clusters within their respective biomes.
+
+The patches within a biome are sorted by their distance and angle from the biome's center (seed point), which creates a cohesive and organized appearance.
+
 
 ## Code organization
 Everything is split out into separate files to keep concerns separate and make it easier to understand.

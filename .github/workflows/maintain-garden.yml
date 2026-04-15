@@ -1,8 +1,11 @@
-name: Maintain Garden
+name: Maintain Git Garden
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
+
+permissions:
+  contents: write
 
 jobs:
   garden:

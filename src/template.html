@@ -213,7 +213,7 @@
           } else if (files.length > 1) {
             tooltip.innerHTML = `<strong>${files.length} Files</strong><br>Biome: ${files[0].biome}`;
           } else {
-            tooltip.innerHTML = `<strong>Vacant</strong><br>Biome: ${patch.biome}`;
+            tooltip.style.display = 'none';
           }
         } else {
           tooltip.style.display = 'none';

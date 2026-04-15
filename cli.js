@@ -16,7 +16,6 @@ function showHelp() {
     console.log('  git-garden install -c | --configure          Install Git Garden and customize the configuration');
     console.log('  git-garden generate                          Generate the garden image');
     console.log('  git-garden generate --from <sha> --to <sha>  Generate between specific commits');
-    console.log('  git-garden generate --fill-factor <0..1>     Override the fill factor');
     console.log('  git-garden remove                            Remove Git Garden workflow');
     console.log('  git-garden clear                             Clear state and start over');
 }
@@ -91,7 +90,6 @@ async function handleInstall(args) {
             height: 512,
             max_score: 200,
             min_distance: 35,
-            fill_factor: 0.85,
             static_paths: []
         };
 
@@ -103,7 +101,6 @@ async function handleInstall(args) {
             config.width = parseInt(await prompt('Garden width (between 100 and 1000)', config.width));
             config.height = parseInt(await prompt('Garden height (between 100 and 1000)', config.height));
             config.max_score = parseInt(await prompt('Max health score (between 100 and 256)', config.max_score));
-            config.fill_factor = parseFloat(await prompt('Fill factor (between 0.1 and 0.9)', config.fill_factor));
             let static_path = await prompt('Add static path or press enter to continue');
             while (static_path) {
                 config.static_paths.push(static_path);
@@ -181,13 +178,12 @@ function updateGitignore(repoRoot) {
 }
 
 async function handleGenerate(args) {
-    let fromCommit, toCommit, fillFactor;
+    let fromCommit, toCommit;
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--from') fromCommit = args[++i];
         else if (args[i] === '--to') toCommit = args[++i];
-        else if (args[i] === '--fill-factor') fillFactor = parseFloat(args[++i]);
     }
-    await generateGarden(process.cwd(), fromCommit, toCommit || 'HEAD', fillFactor);
+    await generateGarden(process.cwd(), fromCommit, toCommit || 'HEAD');
 }
 
 async function handleRemove() {

@@ -1,4 +1,4 @@
-import { clearAssignments, bulkInsertPatches, bulkInsertVacant } from './db.js';
+import { clearAssignments, bulkInsertPatches } from './db.js';
 
 /**
  * Sort patches by angle then distance from the seed.
@@ -22,9 +22,8 @@ export function spiralSort(patches, seedX, seedY) {
  * @param {Database} db 
  * @param {Map} biomePatches 
  * @param {Array} seeds 
- * @param {number} fillFactor 
  */
-export function fullAssignment(db, biomePatches, seeds, fillFactor = 0.85) {
+export function fullAssignment(db, biomePatches, seeds) {
   clearAssignments(db);
   
   db.transaction(() => {
@@ -45,7 +44,7 @@ export function fullAssignment(db, biomePatches, seeds, fillFactor = 0.85) {
       if (totalLines > 0) {
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          const cellCount = Math.max(1, Math.round((file.line_count / totalLines) * totalBiomePatches * fillFactor));
+          const cellCount = Math.max(1, Math.round((file.line_count / totalLines) * totalBiomePatches));
           
           let filePatches;
           if (cursor < totalBiomePatches) {
@@ -64,11 +63,6 @@ export function fullAssignment(db, biomePatches, seeds, fillFactor = 0.85) {
       
       if (patchAssignments.length > 0) {
         bulkInsertPatches(db, patchAssignments);
-      }
-      
-      const remainingPatches = sortedPatches.slice(cursor);
-      if (remainingPatches.length > 0) {
-        bulkInsertVacant(db, remainingPatches.map(p => ({ biome, px: p.x, py: p.y })));
       }
     }
   })();

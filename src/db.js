@@ -49,15 +49,7 @@ export function openDb(repoRoot) {
       PRIMARY KEY (file_id, px, py)
     ) WITHOUT ROWID;
 
-    CREATE TABLE IF NOT EXISTS vacant_patches (
-      biome  TEXT NOT NULL,
-      px     INTEGER NOT NULL,
-      py     INTEGER NOT NULL,
-      PRIMARY KEY (biome, px, py)
-    ) WITHOUT ROWID;
-
     CREATE INDEX IF NOT EXISTS idx_file_patches_file ON file_patches(file_id);
-    CREATE INDEX IF NOT EXISTS idx_vacant_patches_biome ON vacant_patches(biome);
     CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
   `);
 
@@ -97,7 +89,6 @@ export function deleteFile(db, path) {
 export function clearAssignments(db) {
   db.transaction(() => {
     db.prepare('DELETE FROM file_patches').run();
-    db.prepare('DELETE FROM vacant_patches').run();
   }).immediate();
 }
 
@@ -111,12 +102,3 @@ export function bulkInsertPatches(db, patches) {
   transaction.immediate(patches);
 }
 
-export function bulkInsertVacant(db, vacant) {
-  const insert = db.prepare('INSERT INTO vacant_patches (biome, px, py) VALUES (?, ?, ?)');
-  const transaction = db.transaction((vacant) => {
-    for (const v of vacant) {
-      insert.run(v.biome, v.px, v.py);
-    }
-  });
-  transaction.immediate(vacant);
-}

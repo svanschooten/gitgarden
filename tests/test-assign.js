@@ -38,14 +38,11 @@ test('File-to-patch assignment', async (t) => {
     const seeds = [{ biome: 'grass', cx: 0, cy: 0, weight: 1.0 }];
     const biomePatches = new Map([['grass', [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }]]]);
     
-    fullAssignment(db, biomePatches, seeds, 0.5); // Fill factor 0.5
+    fullAssignment(db, biomePatches, seeds);
     
-    // totalPatches = 4. 0.5 * 4 = 2 patches expected for file.
+    // totalPatches = 4. 1.0 * 4 = 4 patches expected for file.
     const assigned = db.prepare('SELECT COUNT(*) as count FROM file_patches WHERE file_id = ?').get(fileId);
-    assert.strictEqual(assigned.count, 2);
-    
-    const vacant = db.prepare('SELECT COUNT(*) as count FROM vacant_patches WHERE biome = ?').get('grass');
-    assert.strictEqual(vacant.count, 2);
+    assert.strictEqual(assigned.count, 4);
   });
 
   db.close();
