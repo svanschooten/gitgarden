@@ -116,7 +116,7 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 ### 3.1 Load and validate
 
-- [ ] Read `.gitgarden-config.yaml` from the repo root (using `js-yaml`)
+ - [ ] Read `.gitgarden/config.yaml` (using `js-yaml`)
 - [ ] Read `colormap.yaml` from the Git Garden installation directory (the tool's own config)
 - [ ] Validate required fields: `width` (≥10), `height` (≥10), `max_score` (≥10), `min_distance` (≥1)
 - [ ] Validate colormap: each plant has `extensions` (array of strings) and `color` ([R, G, B]); `base` is a top-level [R, G, B]
@@ -418,10 +418,10 @@ export async function generateGarden(repoRoot, fromCommit, toCommit) {
 
 ### 10.1 Update `cli.js`
 
-- [ ] Update `regenerate` command: remove `.gitgarden/state.db` instead of `.gitgarden-state.yaml`
-- [ ] Update `install` command: create `.gitgarden/` directory (for state.db) instead of `.gitgarden-state.yaml`
-- [ ] Remove the old `.gitgarden-state.yaml` creation code
-- [ ] Add `.gitgarden/` to `.gitignore` entries (alongside existing `garden.png`, `.git-garden-tool/`)
+ - [ ] Update `regenerate` command: remove `.gitgarden/state.db`
+- [ ] Update `install` command: create `.gitgarden/` directory and `.gitgarden/config.yaml`
+- [ ] Remove the old root-level config file creation code
+- [ ] Add `.gitgarden/state.db` and `.gitgarden/garden.png` to `.gitignore` entries
 - [ ] The `install` command no longer needs to create a state file — the DB is created on first `generateGarden` run
 
 ### 10.2 Update GitHub Actions workflow

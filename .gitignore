@@ -146,3 +146,7 @@ gh-pages-temp
 gh-pages-temp/
 test-results.xml
 garden.png
+
+.git-garden-tool/
+.gitgarden/state.db
+.gitgarden/garden.png

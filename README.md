@@ -39,7 +39,7 @@ git-garden install --branch <branch-name>
 ```
 This will create:
 - A GitHub Actions workflow in `.github/workflows/git-garden.yml` that uses our published reusable workflow.
-- A configuration file `.gitgarden-config.yaml` for user-specific settings (e.g., ignoring static files).
+- A configuration file `.gitgarden/config.yaml` for user-specific settings (e.g., ignoring static files).
 
 The garden visualization will now be automatically updated on every push to the specified branch (or `main` and `master` by default).
 The visualization is hosted on the `gh-pages` branch of the repository.

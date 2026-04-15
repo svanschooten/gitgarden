@@ -3,15 +3,22 @@
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
+import { fileURLToPath } from 'url';
 import yaml from 'js-yaml';
-import { loadConfig, generateStartingPoints } from './src/util.js';
+import { generateGarden } from './src/garden.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function showHelp() {
     console.log('### Git Garden CLI ###\n\nUsage:');
-    console.log('  git-garden install                           Install Git Garden workflow (uses [main, master] branches)');
+    console.log('  git-garden install                           Install Git Garden workflow');
     console.log('  git-garden install -b | --branch <name>      Install Git Garden workflow for a specific branch');
-    console.log('  git-garden remove                            Remove Git Garden workflow from the current repository');
-    console.log('  git-garden regenerate                        Clear state and start over');
+    console.log('  git-garden install -c | --configure          Install Git Garden and customize the configuration');
+    console.log('  git-garden generate                          Generate the garden image');
+    console.log('  git-garden generate --from <sha> --to <sha>  Generate between specific commits');
+    console.log('  git-garden generate --fill-factor <0..1>     Override the fill factor');
+    console.log('  git-garden remove                            Remove Git Garden workflow');
+    console.log('  git-garden clear                             Clear state and start over');
 }
 
 async function prompt(question, defaultValue = '') {
@@ -28,58 +35,17 @@ async function prompt(question, defaultValue = '') {
     });
 }
 
-async function main() {
-    const args = process.argv.slice(2);
-    const command = args[0];
-
-    if (command === 'install') {
-        let branch;
-        for (let i = 1; i < args.length; i++) {
-            if (args[i] === '--branch' || args[i] === '-b') {
-                branch = args[i + 1];
-                break;
-            }
-        }
-
-        await install(branch);
-    } else if (command === 'remove') {
-        await remove();
-    } else if (command === 'regenerate') {
-        await regenerate();
-    } else {
-        showHelp();
-    }
-}
-
-async function regenerate() {
-    const repoRoot = process.cwd();
-    const stateFile = path.join(repoRoot, '.gitgarden-state.yaml');
-    const gardenPng = path.join(repoRoot, 'garden.png');
-
-    if (fs.existsSync(stateFile)) {
-        fs.unlinkSync(stateFile);
-        console.log('✓ Removed .gitgarden-state.yaml');
-    }
-    if (fs.existsSync(gardenPng)) {
-        fs.unlinkSync(gardenPng);
-        console.log('✓ Removed garden.png');
-    }
-    console.log('State cleared. Run your workflow to regenerate the garden.');
-}
-
-function checkOverlap(plantMap) {
-    const extensions = {};
-    for (const [plantName, plant] of Object.entries(plantMap.plants)) {
-        for (const ext of plant.extensions) {
-            if (extensions[ext]) {
-                console.warn(`Warning: Extension ${ext} is defined for both ${extensions[ext]} and ${plantName}. This will create issues.`);
-            }
-            extensions[ext] = plantName;
+async function handleInstall(args) {
+    let branch;
+    let configure = false;
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--branch' || args[i] === '-b') {
+            branch = args[++i];
+        } else if (args[i] === '--configure' || args[i] === '-c') {
+            configure = true;
         }
     }
-}
 
-async function install(branch) {
     const repoRoot = process.cwd();
     
     if (!fs.existsSync(path.join(repoRoot, '.git'))) {
@@ -89,12 +55,12 @@ async function install(branch) {
 
     const workflowDir = path.join(repoRoot, '.github', 'workflows');
     const workflowFile = path.join(workflowDir, 'maintain-garden.yml');
-    const configFile = path.join(repoRoot, '.gitgarden-config.yaml');
-    const stateFile = path.join(repoRoot, '.gitgarden-state.yaml');
+    const gardenDir = path.join(repoRoot, '.gitgarden');
+    const configFile = path.join(gardenDir, 'config.yaml');
 
     if (!fs.existsSync(workflowDir)) {
-        const answer = await prompt('Do you want to create the GitHub Actions directory and initialize Git Garden? (y/n)');
-        if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
+        const answer = await prompt('Do you want to create the GitHub Actions directory and initialize Git Garden? (Y/n)');
+        if (answer.toLowerCase() === 'n' || answer.toLowerCase() === 'no') {
             console.log('Aborting installation.');
             process.exit(0);
         }
@@ -102,78 +68,54 @@ async function install(branch) {
     }
 
     let overwrite = false;
-    if (fs.existsSync(configFile) || fs.existsSync(workflowFile) || fs.existsSync(stateFile)) {
-        const answer = await prompt('Git Garden seems to be already installed. Overwrite all existing files? (y/n)');
+    if (fs.existsSync(configFile) || fs.existsSync(workflowFile) || fs.existsSync(gardenDir)) {
+        const answer = await prompt('Git Garden seems to be already installed. Overwrite existing files? (y/N)');
         overwrite = (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
     }
 
-    const customizeConfig = async function (name, min, max, defaultValue, setFn, parseFn = parseInt) {
-        let input;
-        do {
-            input = await prompt(`${name} (min ${min}, max ${max}) or '0' to cancel`, defaultValue);
-            if (input === '0') {
-                console.log('Customization cancelled. Using default values.');
-                break;
-            }
-            input = parseFn(input);
-            if (isNaN(input) || input < min || input > max) {
-                console.log(`Invalid ${name}. Please enter a value between ${min} and ${max}, or '0' to cancel.`);
-            } else {
-                setFn(input);
-            }
-        } while (isNaN(input) || input < min || input > max);
+    if (configure || overwrite || !fs.existsSync(gardenDir)) {
+        if (fs.existsSync(gardenDir) && (configure || overwrite)) {
+            fs.rmSync(gardenDir, { recursive: true });
+            console.log(`✓ Old directory ${gardenDir} cleaned up`);
+        }
+        if (!fs.existsSync(gardenDir)) {
+            fs.mkdirSync(gardenDir, { recursive: true });
+            console.log(`✓ Created  ${gardenDir} directory`);
+        }
     }
 
-    if (overwrite || !fs.existsSync(configFile)) {
-        const config = loadConfig();
-        const defaultConfig = loadConfig(true);
+    if (configure || overwrite || !fs.existsSync(configFile)) {
+        const defaultConfigPath = path.join(__dirname, 'config.yaml');
+        let config = {
+            width: 512,
+            height: 512,
+            max_score: 200,
+            min_distance: 35,
+            fill_factor: 0.85,
+            static_paths: []
+        };
 
-        const customize = await prompt('Do you want to customize garden setup (min/max size etc.)? (y/n)');
-        if (customize.toLowerCase() === 'y' || customize.toLowerCase() === 'yes') {
-            await customizeConfig('width', 10, 1000, defaultConfig.width, (value) => config.width = value);
-            await customizeConfig('height', 10, 1000, defaultConfig.height, (value) => config.height = value);
-            await customizeConfig('max_score', 100, 256, defaultConfig.max_score, (value) => config.max_score = value);
-            await customizeConfig('min_distance', 1, Math.floor(config.width / 2), defaultConfig.min_distance, (value) => config.min_distance = value);
+        if (fs.existsSync(defaultConfigPath)) {
+            config = yaml.load(fs.readFileSync(defaultConfigPath, 'utf8'));
         }
 
-        const customizePlants = await prompt('Do you want to override default plant map? (y/n)');
-        if (customizePlants.toLowerCase() === 'y' || customizePlants.toLowerCase() === 'yes') {
-             console.log('Current plant map:');
-             console.log(yaml.dump(defaultConfig.plant_map));
-             const newPlantsYaml = await prompt('Provide new plant map in YAML format (or press enter to keep current)');
-             if (newPlantsYaml) {
-                 try {
-                     const newPlants = yaml.load(newPlantsYaml);
-                     if (newPlants) {
-                         config.plant_map = newPlants;
-                         checkOverlap(config.plant_map);
-                     }
-                 } catch (e) {
-                     console.error('Error parsing YAML, keeping default plants.');
-                 }
-             } else {
-                 config.plant_map = defaultConfig.plant_map;
-             }
-        }
-
-        const plantNames = Object.keys(config.plant_map.plants);
-        const minDistance = config.min_distance || 25;
-        const points = generateStartingPoints(plantNames.length + 1, config.width, config.height, minDistance);
-
-        config.starting_points = [
-            {
-                type: 'base',
-                ...points.pop()
+        if (configure) {
+            config.width = parseInt(await prompt('Garden width (between 100 and 1000)', config.width));
+            config.height = parseInt(await prompt('Garden height (between 100 and 1000)', config.height));
+            config.max_score = parseInt(await prompt('Max health score (between 100 and 256)', config.max_score));
+            config.fill_factor = parseFloat(await prompt('Fill factor (between 0.1 and 0.9)', config.fill_factor));
+            let static_path = await prompt('Add static path or press enter to continue');
+            while (static_path) {
+                config.static_paths.push(static_path);
+                static_path = await prompt('Add another static path or press enter to finish');
             }
-        ];
-        plantNames.forEach((name) => config.starting_points.push({
-            type: name,
-            ...points.pop()
-        }));
+        }
         
-        fs.writeFileSync(configFile, `# Git Garden Configuration
-# Define static files or directories that should not be treated as growing plants\n` + yaml.dump(config));
-        console.log('✓ Created .gitgarden-config.yaml');
+        const configHeader = `# Git Garden Configuration
+# For more info see https://github.com/svanschooten/gitgarden
+`;
+        fs.writeFileSync(configFile, configHeader + yaml.dump(config));
+        console.log('✓ Created .gitgarden/config.yaml');
     }
 
     if (overwrite || !fs.existsSync(workflowFile)) {
@@ -195,41 +137,59 @@ jobs:
         console.log('✓ Git Garden workflow installed in .github/workflows/maintain-garden.yml');
     }
 
-    if (overwrite || !fs.existsSync(stateFile)) {
-        const stateFileContent = `state: something`;
+    updateGitignore(repoRoot);
 
-        fs.writeFileSync(stateFile, stateFileContent);
-        console.log('✓ Git Garden state file installed in .gitgarden-state.yaml');
-    }
+    console.log('\nMake sure to commit these changes and push them to your repository.');
+}
 
+function updateGitignore(repoRoot) {
     const gitignoreFile = path.join(repoRoot, '.gitignore');
-    const ignoreEntries = ['garden.png', '.git-garden-tool/'];
+    const ignoreEntries = ['garden.png', '.git-garden-tool/', '.gitgarden/state.db', '.gitgarden/garden.png'];
+    
     if (fs.existsSync(gitignoreFile)) {
-        let content = fs.readFileSync(gitignoreFile, 'utf8');
+        let lines = fs.readFileSync(gitignoreFile, 'utf8').split(/\r?\n/);
         let updated = false;
+
+        // Remove broad .gitgarden/ ignore if it exists to allow config.yaml to be tracked
+        const broadIgnores = ['.gitgarden/', '.gitgarden'];
+        for (const broad of broadIgnores) {
+            const idx = lines.findIndex(l => l.trim() === broad);
+            if (idx !== -1) {
+                lines.splice(idx, 1);
+                updated = true;
+            }
+        }
+
         for (const entry of ignoreEntries) {
-            if (!content.includes(entry)) {
-                content += (content.endsWith('\n') ? '' : '\n') + entry + '\n';
+            if (!lines.some(l => l.trim() === entry)) {
+                lines.push(entry);
                 updated = true;
             }
         }
         if (updated) {
-            fs.writeFileSync(gitignoreFile, content);
+            fs.writeFileSync(gitignoreFile, lines.join('\n'));
             console.log('✓ .gitignore updated');
         }
     } else {
         fs.writeFileSync(gitignoreFile, ignoreEntries.join('\n') + '\n');
         console.log('✓ .gitignore created');
     }
-
-    console.log('\nMake sure to commit these changes and push them to your repository.');
 }
 
-async function remove() {
+async function handleGenerate(args) {
+    let fromCommit, toCommit, fillFactor;
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--from') fromCommit = args[++i];
+        else if (args[i] === '--to') toCommit = args[++i];
+        else if (args[i] === '--fill-factor') fillFactor = parseFloat(args[++i]);
+    }
+    await generateGarden(process.cwd(), fromCommit, toCommit || 'HEAD', fillFactor);
+}
+
+async function handleRemove() {
     const repoRoot = process.cwd();
     const workflowFile = path.join(repoRoot, '.github', 'workflows', 'maintain-garden.yml');
-    const configYaml = path.join(repoRoot, '.gitgarden-config.yaml');
-    const configYml = path.join(repoRoot, '.gitgarden-config.yml');
+    const stateDir = path.join(repoRoot, '.gitgarden');
 
     let removed = false;
     if (fs.existsSync(workflowFile)) {
@@ -238,15 +198,9 @@ async function remove() {
         removed = true;
     }
 
-    if (fs.existsSync(configYaml)) {
-        fs.unlinkSync(configYaml);
-        console.log('✓ Removed .gitgarden-config.yaml');
-        removed = true;
-    }
-
-    if (fs.existsSync(configYml)) {
-        fs.unlinkSync(configYml);
-        console.log('✓ Removed .gitgarden-config.yml');
+    if (fs.existsSync(stateDir)) {
+        fs.rmSync(stateDir, { recursive: true, force: true });
+        console.log('✓ Removed .gitgarden/ directory');
         removed = true;
     }
 
@@ -255,7 +209,57 @@ async function remove() {
     }
 }
 
-main().catch(err => {
-    console.error(err);
-    process.exit(1);
+async function handleClearState() {
+    const repoRoot = process.cwd();
+    const stateDir = path.join(repoRoot, '.gitgarden');
+    const gardenPng = path.join(repoRoot, 'garden.png');
+
+    if (fs.existsSync(stateDir)) {
+        // We keep config.yaml but remove state.db
+        const dbFile = path.join(stateDir, 'state.db');
+        const gardenPngInDir = path.join(stateDir, 'garden.png');
+        if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile);
+        if (fs.existsSync(gardenPngInDir)) fs.unlinkSync(gardenPngInDir);
+        console.log('✓ Cleared .gitgarden state');
+    }
+    if (fs.existsSync(gardenPng)) {
+        fs.unlinkSync(gardenPng);
+        console.log('✓ Removed garden.png');
+    }
+    console.log('State cleared. Run "git-garden generate" to regenerate the garden.');
+}
+
+async function main() {
+    const args = process.argv.slice(2);
+    const command = args[0];
+
+    try {
+        switch (command) {
+            case 'install':
+                await handleInstall(args.slice(1));
+                break;
+            case 'generate':
+                await handleGenerate(args.slice(1));
+                break;
+            case 'remove':
+                await handleRemove();
+                break;
+            case 'clear':
+                await handleClearState();
+                break;
+            case '-h':
+            case '--help':
+            case 'help':
+            default:
+                showHelp();
+                break;
+        }
+    } catch (err) {
+        console.error(`Error: ${err.message}`);
+        process.exit(1);
+    }
+}
+
+main().then(() => {
+    process.exit(0);
 });
