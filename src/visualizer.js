@@ -3,10 +3,10 @@ import {localFileManager} from './filemanager.js';
 import {analyzeDiff} from './analyzer.js';
 import fs from 'fs';
 import path from 'path';
-import {loadColorMap, loadConfig} from './util.js';
+import {loadConfig} from './util.js';
 
-const colormap = loadColorMap();
 const config = loadConfig();
+const colormap = config.plant_map;
 let filename = 'garden.png'
 
 // change filemanager based on your usage, the default is the LocalFileManager.

@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { generateStartingPoints, loadConfig, loadColorMap, GitGardenConfig } from '../src/util.js';
+import { generateStartingPoints, loadConfig, GitGardenConfig } from '../src/util.js';
 import fs from 'fs';
 import path from 'path';
+import yaml from 'js-yaml';
 
 test('generateStartingPoints generates correct number of points', () => {
     const points = generateStartingPoints(5, 512, 512, 50);
@@ -25,6 +26,7 @@ test('loadConfig loads configuration correctly', () => {
     assert.ok(config.height);
     assert.ok(config.max_score);
     assert.strictEqual(config.min_distance, 35);
+    assert.ok(config.plant_map);
 });
 
 test('GitGardenConfig loads configuration correctly', () => {
@@ -33,17 +35,23 @@ test('GitGardenConfig loads configuration correctly', () => {
     assert.strictEqual(config.height, 512);
     assert.strictEqual(config.max_score, 200);
     assert.strictEqual(config.min_distance, 35);
+    assert.ok(config.plant_map);
 });
 
 test('GitGardenConfig loads local starting points if present', () => {
     const dummyConfig = {
+        width: 512,
+        height: 512,
+        max_score: 200,
+        min_distance: 35,
+        plant_map: { plants: {}, base: [0,0,0] },
         starting_points: [
             { type: 'base', x: 100, y: 100 },
             { type: 'grass', x: 200, y: 200 }
         ]
     };
     const configPath = path.join(process.cwd(), '.gitgarden-config.yaml');
-    fs.writeFileSync(configPath, JSON.stringify(dummyConfig));
+    fs.writeFileSync(configPath, yaml.dump(dummyConfig));
     
     try {
         const config = new GitGardenConfig();
@@ -54,10 +62,4 @@ test('GitGardenConfig loads local starting points if present', () => {
     } finally {
         if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
     }
-});
-
-test('loadColorMap loads colormap correctly', () => {
-    const colormap = loadColorMap();
-    assert.ok(colormap.plants);
-    assert.ok(colormap.base);
 });

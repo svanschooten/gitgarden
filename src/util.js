@@ -6,22 +6,13 @@ import yaml from 'js-yaml';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function loadConfig() {
-    const configPath = path.join(__dirname, "..", "config.yaml");
-    return yaml.load(readFileSync(configPath, "utf8"));
-}
-
-export function loadLocalConfig() {
-    const configPath = path.join(process.cwd(), ".gitgarden-config.yaml");
-    if (existsSync(configPath)) {
-        return yaml.load(readFileSync(configPath, "utf8"));
+export function loadConfig(defaultConfig = false) {
+    if (defaultConfig) {
+        const configPath = path.join(__dirname, "..", "config.yaml");
+        return yaml.load(readFileSync(configPath, {encoding: "utf8"}));
     }
-    return null;
-}
-
-export function loadColorMap() {
-    const colorMapPath = path.join(__dirname, "..", "colormap.yaml");
-    return yaml.load(readFileSync(colorMapPath, "utf8"));
+    const localConfigPath = path.join(process.cwd(), ".gitgarden-config.yaml");
+    return yaml.load(readFileSync(localConfigPath, {encoding: "utf8"}));
 }
 
 export function generateStartingPoints(count, width, height, minDistance) {
@@ -32,7 +23,7 @@ export function generateStartingPoints(count, width, height, minDistance) {
         const y = Math.floor(Math.random() * height);
         const tooClose = points.some(p => Math.sqrt(Math.pow(p.x - x, 2) + Math.pow(p.y - y, 2)) < minDistance);
         if (!tooClose) {
-            points.push({ x: x, y: y });
+            points.push({ x_coord: x, y_coord: y });
         }
         attempts++;
     }
@@ -106,10 +97,11 @@ export class PlantMap {
     base;
     unknown;
     constructor() {
-        const colorMapDefinition = loadColorMap();
-        this.plants = Object.entries(colorMapDefinition.plants).map(([name, plant]) => new Plant(name, plant.color, plant.extensions));
-        this.base = colorMapDefinition.base;
-        this.unknown = colorMapDefinition.unknown;
+        const config = loadConfig();
+        const plantMap = config.plant_map;
+        this.plants = Object.entries(plantMap.plants).map(([name, plant]) => new Plant(name, plant.color, plant.extensions));
+        this.base = plantMap.base;
+        this.unknown = plantMap.unknown;
     }
     getByName(name) {
         return this.plants.find(p => p.name === name);
@@ -129,17 +121,15 @@ export class GitGardenConfig {
     max_score;
     min_distance;
     starting_points;
+    plant_map;
     constructor() {
         const config = loadConfig();
         this.width = config.width;
         this.height = config.height;
         this.max_score = config.max_score;
         this.min_distance = config.min_distance || 25;
-
-        const localConfig = loadLocalConfig();
-        if (localConfig && localConfig.starting_points) {
-            this.starting_points = localConfig.starting_points;
-        }
+        this.starting_points = config.starting_points || [];
+        this.plant_map = config.plant_map;
     }
 }
 

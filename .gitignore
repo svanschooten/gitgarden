@@ -145,3 +145,4 @@ gh-pages-temp
 .git-garden-tool/node_modules
 gh-pages-temp/
 test-results.xml
+garden.png
