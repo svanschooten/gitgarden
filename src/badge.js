@@ -35,10 +35,10 @@ export async function updateBadge(repoRoot) {
     const before = content.substring(0, startIndex);
     const after = content.substring(endIndex + endTag.length);
     content = before + badgeBlock + after;
-    logger.log('✓ Updated existing Git Garden badge in README.md');
+    logger.info('✓ Updated existing Git Garden badge in README.md');
   } else {
     content = badgeBlock + '\n\n' + content;
-    logger.log('✓ Added Git Garden badge to the top of README.md');
+    logger.info('✓ Added Git Garden badge to the top of README.md');
   }
   
   fs.writeFileSync(readmePath, content, 'utf8');

@@ -103,7 +103,7 @@ async function handleInstall(args) {
         }
         if (!fs.existsSync(gardenDir)) {
             fs.mkdirSync(gardenDir, { recursive: true });
-            logger.log(`✓ Created  ${gardenDir} directory`);
+            logger.info(`✓ Created  ${gardenDir} directory`);
         }
     }
 
@@ -160,7 +160,7 @@ jobs:
 `;
 
         fs.writeFileSync(workflowFile, workflowContent);
-        logger.log('✓ Git Garden workflow installed in .github/workflows/maintain-garden.yml');
+        logger.info('✓ Git Garden workflow installed in .github/workflows/maintain-garden.yml');
     }
 
     updateGitignore(repoRoot);
@@ -194,11 +194,11 @@ function updateGitignore(repoRoot) {
         }
         if (updated) {
             fs.writeFileSync(gitignoreFile, lines.join('\n'));
-            logger.log('✓ .gitignore updated');
+            logger.info('✓ .gitignore updated');
         }
     } else {
         fs.writeFileSync(gitignoreFile, ignoreEntries.join('\n') + '\n');
-        logger.log('✓ .gitignore created');
+        logger.info('✓ .gitignore created');
     }
 }
 
@@ -221,18 +221,18 @@ async function handleRemove() {
     let removed = false;
     if (fs.existsSync(workflowFile)) {
         fs.unlinkSync(workflowFile);
-        logger.log('✓ Removed .github/workflows/maintain-garden.yml');
+        logger.info('✓ Removed .github/workflows/maintain-garden.yml');
         removed = true;
     }
 
     if (fs.existsSync(stateDir)) {
         fs.rmSync(stateDir, { recursive: true, force: true });
-        logger.log('✓ Removed .gitgarden/ directory');
+        logger.info('✓ Removed .gitgarden/ directory');
         removed = true;
     }
 
     if (!removed) {
-        logger.log('Git Garden is not installed in this repository.');
+        logger.warn('Git Garden is not installed in this repository.');
     }
 }
 
@@ -249,13 +249,13 @@ async function handleClearState() {
         if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile);
         if (fs.existsSync(gardenPngInDir)) fs.unlinkSync(gardenPngInDir);
         if (fs.existsSync(gardenHtmlInDir)) fs.unlinkSync(gardenHtmlInDir);
-        logger.log('✓ Cleared .gitgarden state');
+        logger.info('✓ Cleared .gitgarden state');
     }
     if (fs.existsSync(gardenPng)) {
         fs.unlinkSync(gardenPng);
-        logger.log('✓ Removed garden.png');
+        logger.info('✓ Removed garden.png');
     }
-    logger.log('State cleared. Run "git-garden generate" to regenerate the garden.');
+    logger.info('State cleared. Run "git-garden generate" to regenerate the garden.');
 }
 
 async function handleBadge() {
