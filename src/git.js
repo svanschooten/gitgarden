@@ -60,3 +60,37 @@ export async function getDiffStats(repoRoot, fromCommit, toCommit) {
   }
   return stats;
 }
+
+/**
+ * Get the GitHub Pages URL for the repository.
+ * @param {string} repoRoot 
+ * @returns {Promise<string|null>}
+ */
+export async function getGitHubPagesUrl(repoRoot) {
+  try {
+    const { stdout } = await execFileAsync('git', ['remote', 'get-url', 'origin'], { cwd: repoRoot });
+    const url = stdout.trim();
+    
+    // Patterns:
+    // https://github.com/owner/repo[.git]
+    // git@github.com:owner/repo[.git]
+    
+    const httpsMatch = url.match(/https:\/\/github\.com\/([^/]+)\/([^/.]+)(?:\.git)?/);
+    if (httpsMatch) {
+      const owner = httpsMatch[1];
+      const repo = httpsMatch[2];
+      return `https://${owner}.github.io/${repo}/garden.html`;
+    }
+    
+    const sshMatch = url.match(/git@github\.com:([^/]+)\/([^/.]+)(?:\.git)?/);
+    if (sshMatch) {
+      const owner = sshMatch[1];
+      const repo = sshMatch[2];
+      return `https://${owner}.github.io/${repo}/garden.html`;
+    }
+    
+    return null;
+  } catch (err) {
+    return null;
+  }
+}

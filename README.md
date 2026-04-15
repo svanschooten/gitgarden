@@ -1,5 +1,10 @@
+
+
 # Git Garden
 Git Garden visualizes the health, diversity, and evolution of a codebase as a living garden—grown from your commits.
+<!-- git-garden-badge-start -->
+[<img src="https://badges.ws/badge/Git%20Garden-green?icon=gumtree" />](https://svanschooten.github.io/gitgarden/garden.html)
+<!-- git-garden-badge-end -->
 
 ## Features
 - **Health**: Track the overall health of your codebase over time.
@@ -52,6 +57,10 @@ The visualization is hosted on the `gh-pages` branch of the repository.
 4. Go to GitHub Settings → Pages
 5. Select `Deploy from a branch` in the source dropdown
 6. Select branch `gh-pages`
+
+Once enabled, your garden will be available at: `https://<owner name>.github.io/<repo name>/garden.html`
+
+_A generated static image of your garden will also be available at: `https://<owner name>.github.io/<repo name>/garden.png`_
 
 ### 4. Generate the garden manually
 You can also generate the garden manually using the `generate` command:
@@ -115,4 +124,3 @@ We welcome contributions to Git Garden! If you'd like to contribute, please foll
 
 ## License
 Git Garden is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-

@@ -6,7 +6,9 @@ import readline from 'readline';
 import { fileURLToPath } from 'url';
 import yaml from 'js-yaml';
 import { generateGarden } from './src/garden.js';
+import { updateBadge } from './src/badge.js';
 import { randomizeBiomeCenters } from './src/config.js';
+import { getGitHubPagesUrl } from './src/git.js';
 import * as logger from './src/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,6 +22,7 @@ function showHelp() {
     console.log('  git-garden generate                          Generate the garden image');
     console.log('  git-garden generate --from <sha> --to <sha>  Generate between specific commits');
     console.log('  git-garden generate --debug                  Enable debug logging and HTML controls');
+    console.log('  git-garden badge                             Add or update Git Garden badge in README.md');
     console.log('  git-garden remove                            Remove Git Garden workflow');
     console.log('  git-garden clear                             Clear state and start over');
 }
@@ -38,7 +41,7 @@ async function prompt(question, defaultValue = '') {
     });
 }
 
-function logGitHubPagesInstructions() {
+async function logGitHubPagesInstructions() {
     logger.info('\nTo enable GitHub Pages for your garden:');
     logger.info('  1. Install Git Garden');
     logger.info('  2. (Optional) Generate garden');
@@ -46,6 +49,13 @@ function logGitHubPagesInstructions() {
     logger.info('  4. Go to GitHub Settings → Pages');
     logger.info('  5. Select "Deploy from a branch" in the source dropdown');
     logger.info('  6. Select branch "gh-pages"');
+
+    const url = await getGitHubPagesUrl(process.cwd());
+    if (url) {
+        logger.info(`\nYour garden will be available at: ${url}`);
+    } else {
+        logger.info('\nYour garden will be available at: https://<owner name>.github.io/<repo name>/garden.html');
+    }
 }
 
 async function handleInstall(args) {
@@ -156,7 +166,7 @@ jobs:
     updateGitignore(repoRoot);
 
     logger.info('\n✓ Setup complete! Make sure to commit these changes and push them to your repository.');
-    logGitHubPagesInstructions();
+    await logGitHubPagesInstructions();
 }
 
 function updateGitignore(repoRoot) {
@@ -200,7 +210,7 @@ async function handleGenerate(args) {
         else if (args[i] === '--debug') debug = true;
     }
     await generateGarden(process.cwd(), fromCommit, toCommit || 'HEAD', debug);
-    logGitHubPagesInstructions();
+    await logGitHubPagesInstructions();
 }
 
 async function handleRemove() {
@@ -248,6 +258,10 @@ async function handleClearState() {
     logger.log('State cleared. Run "git-garden generate" to regenerate the garden.');
 }
 
+async function handleBadge() {
+    await updateBadge(process.cwd());
+}
+
 async function main() {
     const args = process.argv.slice(2);
     const command = args[0];
@@ -270,6 +284,9 @@ async function main() {
                 break;
             case 'clear':
                 await handleClearState();
+                break;
+            case 'badge':
+                await handleBadge();
                 break;
             case '-h':
             case '--help':

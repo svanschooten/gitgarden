@@ -16,8 +16,8 @@ plant_map:
         - 212
         - 30
       center:
-        - 333
-        - 190
+        - 158
+        - 211
     daisy:
       extensions:
         - .java
@@ -26,8 +26,8 @@ plant_map:
         - 255
         - 255
       center:
-        - 50
-        - 447
+        - 148
+        - 439
     lavender:
       extensions:
         - .py
@@ -36,8 +36,8 @@ plant_map:
         - 131
         - 255
       center:
-        - 231
-        - 293
+        - 210
+        - 219
     cornflower:
       extensions:
         - .go
@@ -46,8 +46,8 @@ plant_map:
         - 95
         - 255
       center:
-        - 295
-        - 39
+        - 179
+        - 299
     tulip:
       extensions:
         - .rs
@@ -56,8 +56,8 @@ plant_map:
         - 142
         - 0
       center:
-        - 343
-        - 89
+        - 289
+        - 263
     dirt:
       extensions:
         - .md
@@ -69,8 +69,8 @@ plant_map:
         - 61
         - 0
       center:
-        - 70
-        - 55
+        - 241
+        - 414
   base:
     - 138
     - 204

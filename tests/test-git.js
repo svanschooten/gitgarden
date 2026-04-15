@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'child_process';
-import { getDiffStats } from '../src/git.js';
+import { getDiffStats, getGitHubPagesUrl } from '../src/git.js';
 
 const testRepoRoot = path.join(process.cwd(), 'test-repo-git');
 
@@ -42,6 +42,16 @@ test('Git diff stats', async (t) => {
     assert.ok(stats['file1_new.js']);
     assert.strictEqual(stats['file1_new.js'].renamedFrom, 'file1.js');
     assert.strictEqual(stats['file1_new.js'].linesAdded, 1);
+  });
+
+  await t.test('getGitHubPagesUrl detects URL from origin', async () => {
+    execSync('git remote add origin https://github.com/user/project.git', { cwd: testRepoRoot });
+    const url = await getGitHubPagesUrl(testRepoRoot);
+    assert.strictEqual(url, 'https://user.github.io/project/garden.html');
+
+    execSync('git remote set-url origin git@github.com:sshuser/sshproject.git', { cwd: testRepoRoot });
+    const sshUrl = await getGitHubPagesUrl(testRepoRoot);
+    assert.strictEqual(sshUrl, 'https://sshuser.github.io/sshproject/garden.html');
   });
 
   fs.rmSync(testRepoRoot, { recursive: true, force: true });
