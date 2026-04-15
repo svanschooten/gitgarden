@@ -126,12 +126,13 @@ on:
   push:
     branches: ${branchList}
 
+permissions:
+  contents: write
+
 jobs:
-  maintain-garden:
+  garden:
     permissions:
       contents: write
-      pages: write
-      id-token: write
     uses: svanschooten/gitgarden/.github/workflows/gitgarden.yml@main
 `;
 
