@@ -1,4 +1,4 @@
-name: Maintain Garden
+name: Maintain Git Garden
 
 on:
   push:
@@ -8,4 +8,6 @@ jobs:
   maintain-garden:
     permissions:
       contents: write
+      pages: write
+      id-token: write
     uses: svanschooten/gitgarden/.github/workflows/gitgarden.yml@main

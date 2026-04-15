@@ -130,6 +130,8 @@ jobs:
   maintain-garden:
     permissions:
       contents: write
+      pages: write
+      id-token: write
     uses: svanschooten/gitgarden/.github/workflows/gitgarden.yml@main
 `;
 
@@ -139,7 +141,8 @@ jobs:
 
     updateGitignore(repoRoot);
 
-    console.log('\nMake sure to commit these changes and push them to your repository.');
+    console.log('\n✓ Setup complete! Make sure to commit these changes and push them to your repository.');
+    console.log('  The GitHub Action will automatically generate your garden and enable GitHub Pages.');
 }
 
 function updateGitignore(repoRoot) {

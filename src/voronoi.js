@@ -61,7 +61,7 @@ export function computeSeedWeights(db) {
       const count = row ? row.cnt : 0;
       // Square root softens the weighting
       const weight = totalFiles > 0 ? Math.sqrt(count / totalFiles) : 1.0;
-      const finalWeight = Math.max(0.1, weight); 
+      const finalWeight = count > 0 ? Math.max(0.1, weight) : (totalFiles > 0 ? 0 : 1.0); 
       update.run(finalWeight, seed.biome);
       result.push({ ...seed, weight: finalWeight });
     }

@@ -34,7 +34,7 @@ test('Voronoi biome map logic', async (t) => {
     const dirt = weightedSeeds.find(s => s.biome === 'dirt');
     
     assert.ok(grass.weight > lavender.weight);
-    assert.strictEqual(dirt.weight, 0.1); // Min weight
+    assert.strictEqual(dirt.weight, 0); // Biomes with no files get 0 weight
   });
 
   await t.test('computeVoronoiMap and extractBiomePatches', () => {
@@ -50,6 +50,18 @@ test('Voronoi biome map logic', async (t) => {
     assert.ok(patches.get('grass').length > 0);
     assert.ok(patches.get('lavender').length > 0);
     assert.strictEqual(patches.get('grass').length + patches.get('lavender').length, 121);
+  });
+
+  await t.test('computeVoronoiMap skips seeds with weight 0', () => {
+    const seeds = [
+      { biome: 'grass', cx: 0, cy: 0, weight: 1.0 },
+      { biome: 'lavender', cx: 10, cy: 10, weight: 0.0 }
+    ];
+    const { biomeMap, biomes: biomeList } = computeVoronoiMap(seeds, 11, 11);
+    const patches = extractBiomePatches(biomeMap, biomeList, 11, 11);
+    
+    assert.strictEqual(patches.get('lavender').length, 0, 'Biome with weight 0 should have no patches');
+    assert.strictEqual(patches.get('grass').length, 121, 'All patches should be assigned to active biome');
   });
 
   db.close();
