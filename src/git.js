@@ -1,5 +1,6 @@
 import { execFile } from 'child_process';
 import util from 'util';
+import * as logger from './logger.js';
 
 const execFileAsync = util.promisify(execFile);
 
@@ -18,8 +19,7 @@ export async function getDiffStats(repoRoot, fromCommit, toCommit) {
     ], { cwd: repoRoot });
     stdout = result.stdout;
   } catch (err) {
-    // If it fails (e.g. fromCommit is invalid or initial commit), return empty
-    console.warn(`Git diff failed: ${err.message}`);
+    logger.warn(`Git diff failed: ${err.message}`);
     return {};
   }
 
@@ -37,10 +37,6 @@ export async function getDiffStats(repoRoot, fromCommit, toCommit) {
     let renamedFrom = null;
 
     if (rawPath.includes(' => ')) {
-      // Handle renames
-      // Case 1: {dir => dir2}/file.js
-      // Case 2: dir/{file => file2}.js
-      // Case 3: file => file2
       const renameRegex = /^(.*)\{(.*) => (.*)\}(.*)$/;
       const match = rawPath.match(renameRegex);
       if (match) {

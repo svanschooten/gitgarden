@@ -6,6 +6,8 @@ import readline from 'readline';
 import { fileURLToPath } from 'url';
 import yaml from 'js-yaml';
 import { generateGarden } from './src/garden.js';
+import { randomizeBiomeCenters } from './src/config.js';
+import * as logger from './src/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -14,8 +16,10 @@ function showHelp() {
     console.log('  git-garden install                           Install Git Garden workflow');
     console.log('  git-garden install -b | --branch <name>      Install Git Garden workflow for a specific branch');
     console.log('  git-garden install -c | --configure          Install Git Garden and customize the configuration');
+    console.log('  git-garden install --debug                   Enable debug logging and install Git Garden');
     console.log('  git-garden generate                          Generate the garden image');
     console.log('  git-garden generate --from <sha> --to <sha>  Generate between specific commits');
+    console.log('  git-garden generate --debug                  Enable debug logging and HTML controls');
     console.log('  git-garden remove                            Remove Git Garden workflow');
     console.log('  git-garden clear                             Clear state and start over');
 }
@@ -34,6 +38,16 @@ async function prompt(question, defaultValue = '') {
     });
 }
 
+function logGitHubPagesInstructions() {
+    logger.info('\nTo enable GitHub Pages for your garden:');
+    logger.info('  1. Install Git Garden');
+    logger.info('  2. (Optional) Generate garden');
+    logger.info('  3. Push to GitHub');
+    logger.info('  4. Go to GitHub Settings → Pages');
+    logger.info('  5. Select "Deploy from a branch" in the source dropdown');
+    logger.info('  6. Select branch "gh-pages"');
+}
+
 async function handleInstall(args) {
     let branch;
     let configure = false;
@@ -48,7 +62,7 @@ async function handleInstall(args) {
     const repoRoot = process.cwd();
     
     if (!fs.existsSync(path.join(repoRoot, '.git'))) {
-        console.error('Error: Current directory is not a git repository');
+        logger.error('Error: Current directory is not a git repository');
         process.exit(1);
     }
 
@@ -75,11 +89,11 @@ async function handleInstall(args) {
     if (configure || overwrite || !fs.existsSync(gardenDir)) {
         if (fs.existsSync(gardenDir) && (configure || overwrite)) {
             fs.rmSync(gardenDir, { recursive: true });
-            console.log(`✓ Old directory ${gardenDir} cleaned up`);
+            logger.log(`✓ Old directory ${gardenDir} cleaned up`);
         }
         if (!fs.existsSync(gardenDir)) {
             fs.mkdirSync(gardenDir, { recursive: true });
-            console.log(`✓ Created  ${gardenDir} directory`);
+            logger.log(`✓ Created  ${gardenDir} directory`);
         }
     }
 
@@ -108,11 +122,13 @@ async function handleInstall(args) {
             }
         }
         
+        randomizeBiomeCenters(config);
+        
         const configHeader = `# Git Garden Configuration
 # For more info see https://github.com/svanschooten/gitgarden
 `;
         fs.writeFileSync(configFile, configHeader + yaml.dump(config));
-        console.log('✓ Created .gitgarden/config.yaml');
+        logger.log('✓ Created .gitgarden/config.yaml');
     }
 
     if (overwrite || !fs.existsSync(workflowFile)) {
@@ -134,13 +150,13 @@ jobs:
 `;
 
         fs.writeFileSync(workflowFile, workflowContent);
-        console.log('✓ Git Garden workflow installed in .github/workflows/maintain-garden.yml');
+        logger.log('✓ Git Garden workflow installed in .github/workflows/maintain-garden.yml');
     }
 
     updateGitignore(repoRoot);
 
-    console.log('\n✓ Setup complete! Make sure to commit these changes and push them to your repository.');
-    console.log('  The GitHub Action will automatically generate your garden and enable GitHub Pages.');
+    logger.info('\n✓ Setup complete! Make sure to commit these changes and push them to your repository.');
+    logGitHubPagesInstructions();
 }
 
 function updateGitignore(repoRoot) {
@@ -151,7 +167,6 @@ function updateGitignore(repoRoot) {
         let lines = fs.readFileSync(gitignoreFile, 'utf8').split(/\r?\n/);
         let updated = false;
 
-        // Remove broad .gitgarden/ ignore if it exists to allow config.yaml to be tracked
         const broadIgnores = ['.gitgarden/', '.gitgarden'];
         for (const broad of broadIgnores) {
             const idx = lines.findIndex(l => l.trim() === broad);
@@ -169,21 +184,23 @@ function updateGitignore(repoRoot) {
         }
         if (updated) {
             fs.writeFileSync(gitignoreFile, lines.join('\n'));
-            console.log('✓ .gitignore updated');
+            logger.log('✓ .gitignore updated');
         }
     } else {
         fs.writeFileSync(gitignoreFile, ignoreEntries.join('\n') + '\n');
-        console.log('✓ .gitignore created');
+        logger.log('✓ .gitignore created');
     }
 }
 
 async function handleGenerate(args) {
-    let fromCommit, toCommit;
+    let fromCommit, toCommit, debug = false;
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--from') fromCommit = args[++i];
         else if (args[i] === '--to') toCommit = args[++i];
+        else if (args[i] === '--debug') debug = true;
     }
-    await generateGarden(process.cwd(), fromCommit, toCommit || 'HEAD');
+    await generateGarden(process.cwd(), fromCommit, toCommit || 'HEAD', debug);
+    logGitHubPagesInstructions();
 }
 
 async function handleRemove() {
@@ -194,18 +211,18 @@ async function handleRemove() {
     let removed = false;
     if (fs.existsSync(workflowFile)) {
         fs.unlinkSync(workflowFile);
-        console.log('✓ Removed .github/workflows/maintain-garden.yml');
+        logger.log('✓ Removed .github/workflows/maintain-garden.yml');
         removed = true;
     }
 
     if (fs.existsSync(stateDir)) {
         fs.rmSync(stateDir, { recursive: true, force: true });
-        console.log('✓ Removed .gitgarden/ directory');
+        logger.log('✓ Removed .gitgarden/ directory');
         removed = true;
     }
 
     if (!removed) {
-        console.log('Git Garden is not installed in this repository.');
+        logger.log('Git Garden is not installed in this repository.');
     }
 }
 
@@ -222,18 +239,23 @@ async function handleClearState() {
         if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile);
         if (fs.existsSync(gardenPngInDir)) fs.unlinkSync(gardenPngInDir);
         if (fs.existsSync(gardenHtmlInDir)) fs.unlinkSync(gardenHtmlInDir);
-        console.log('✓ Cleared .gitgarden state');
+        logger.log('✓ Cleared .gitgarden state');
     }
     if (fs.existsSync(gardenPng)) {
         fs.unlinkSync(gardenPng);
-        console.log('✓ Removed garden.png');
+        logger.log('✓ Removed garden.png');
     }
-    console.log('State cleared. Run "git-garden generate" to regenerate the garden.');
+    logger.log('State cleared. Run "git-garden generate" to regenerate the garden.');
 }
 
 async function main() {
     const args = process.argv.slice(2);
     const command = args[0];
+
+    // Global debug flag check
+    if (args.includes('--debug')) {
+        logger.setDebug(true);
+    }
 
     try {
         switch (command) {
@@ -257,7 +279,7 @@ async function main() {
                 break;
         }
     } catch (err) {
-        console.error(`Error: ${err.message}`);
+        logger.error(`Error: ${err.message}`);
         process.exit(1);
     }
 }

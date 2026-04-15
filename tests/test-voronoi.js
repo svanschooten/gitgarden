@@ -12,13 +12,31 @@ test('Voronoi biome map logic', async (t) => {
   const db = openDb(testRepoRoot);
 
   const biomes = ['grass', 'lavender', 'dirt'];
-  const config = { width: 400, height: 400, min_distance: 50 };
+  const config = {
+    width: 400,
+    height: 400,
+    min_distance: 50,
+    plant_map: {
+      plants: {
+        grass: { center: [100, 100] },
+        lavender: { center: [300, 300] }
+      }
+    }
+  };
   const PATCH_SIZE = 4;
 
-  await t.test('initBiomeSeeds creates seeds', () => {
+  await t.test('initBiomeSeeds creates seeds from config', () => {
     initBiomeSeeds(db, biomes, config, PATCH_SIZE, false);
     const seeds = db.prepare('SELECT * FROM biome_seeds').all();
     assert.strictEqual(seeds.length, 3);
+    
+    const grass = seeds.find(s => s.biome === 'grass');
+    assert.strictEqual(grass.cx, 100 / PATCH_SIZE);
+    assert.strictEqual(grass.cy, 100 / PATCH_SIZE);
+
+    const lavender = seeds.find(s => s.biome === 'lavender');
+    assert.strictEqual(lavender.cx, 300 / PATCH_SIZE);
+    assert.strictEqual(lavender.cy, 300 / PATCH_SIZE);
   });
 
   await t.test('computeSeedWeights respects file counts', () => {

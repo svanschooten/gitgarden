@@ -114,7 +114,7 @@
     </div>
 
     <div class="sidebar">
-      <div class="panel">
+      <div class="panel" style="display: {{DEBUG_DISPLAY}};">
         <h3>Controls</h3>
         <div class="controls">
           <label>
@@ -184,7 +184,7 @@
             <span class="label">
               <strong>${b.name}</strong>
               ${b.extensions ? `<span> (${b.extensions})</span>` : ''}
-              <br><small>${b.count} patches</small>
+              <br><small>${b.fileCount} files (${b.patchCount} patches)</small>
             </span>
           </div>
         `;

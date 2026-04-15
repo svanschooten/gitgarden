@@ -51,7 +51,6 @@ export function fullAssignment(db, biomePatches, seeds) {
             filePatches = sortedPatches.slice(cursor, Math.min(totalBiomePatches, cursor + cellCount));
             cursor += cellCount;
           } else {
-            // Out of patches, reuse one (wrap around)
             filePatches = [sortedPatches[i % totalBiomePatches]];
           }
           

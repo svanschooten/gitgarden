@@ -14,35 +14,28 @@ const execFileAsync = util.promisify(execFile);
  * @returns {Promise<Array>}
  */
 export async function scanFiles(repoRoot, extensionToBiome, staticPaths = []) {
-  // 1. Get tracked files from git
   let trackedFilesSet;
   try {
     const { stdout } = await execFileAsync('git', ['ls-files'], { cwd: repoRoot });
     trackedFilesSet = new Set(stdout.split('\n').map(f => f.trim()).filter(Boolean));
   } catch (err) {
-    // If not a git repo, assume all files are "tracked" for now
     trackedFilesSet = null;
   }
 
-  // 2. Walk the file tree
   const results = [];
   const entries = fs.readdirSync(repoRoot, { withFileTypes: true, recursive: true });
 
   for (const entry of entries) {
     if (entry.isDirectory()) continue;
 
-    // Get path relative to repoRoot
     const fullPath = path.join(entry.parentPath, entry.name);
     const relativePath = path.relative(repoRoot, fullPath);
 
-    // Skip ignored directories
     const parts = relativePath.split(path.sep);
     if (parts.some(p => p === '.git' || p === 'node_modules' || p === '.gitgarden')) continue;
 
-    // Skip static paths
     if (staticPaths.some(p => relativePath.startsWith(p))) continue;
 
-    // Apply git tracked check
     if (trackedFilesSet && !trackedFilesSet.has(relativePath)) continue;
 
     const ext = path.extname(relativePath);

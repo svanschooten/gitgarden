@@ -16,9 +16,9 @@ Git Garden visualizes the health, diversity, and evolution of a codebase as a li
 - [x] Create a script to analyze the commit
 - [x] Create a script to generate garden feeding data from git commit analysis
 - [ ] Create garden visualization that grows with every feeding
-- [ ] Create a script to publish garden visualization to GitHub Pages
+- [x] Create a script to publish garden visualization to GitHub Pages
 - [x] Create an installation script that sets the commit hook and initializes the garden
-- [ ] Implement the generation scripts in GitHub actions workflow step
+- [x] Implement the generation scripts in GitHub actions workflow step
 
 ## Installation
 ### 1. Install Git Garden CLI globally
@@ -27,6 +27,7 @@ Run the installation script in the Git Garden directory to install the CLI globa
 ./install.sh
 ```
 This will install the `git-garden` command on your system.
+Note that the `install.sh` only installs and links the cli, and the cli is actually what does the things.
 
 ### 2. Enable Git Garden for a repository
 In the repository where you want to grow a garden, run:
@@ -44,10 +45,34 @@ This will create:
 The garden visualization will now be automatically updated on every push to the specified branch (or `main` and `master` by default).
 The visualization is hosted on the `gh-pages` branch of the repository.
 
-### 3. Disable Git Garden for a repository
+### 3. Enabling GitHub Pages
+1. Install Git Garden
+2. (optional) Generate garden
+3. Push to GitHub
+4. Go to GitHub Settings → Pages
+5. Select `Deploy from a branch` in the source dropdown
+6. Select branch `gh-pages`
+
+### 4. Generate the garden manually
+You can also generate the garden manually using the `generate` command:
+```bash
+git-garden generate
+```
+Or with specific commits and debug logging:
+```bash
+git-garden generate --from <sha> --to <sha> --debug
+```
+
+### 5. Disable Git Garden for a repository
 If you want to remove Git Garden from a repository, run:
 ```bash
 git-garden remove
+```
+
+### 6. Clear Git Garden state
+If you want to clear Git Garden state, but not remove the config, and start fresh, run:
+```bash
+git-garden clear
 ```
 
 ## Github actions usage
@@ -63,26 +88,12 @@ Git Garden now uses a published reusable workflow automatically after running `g
 Colorization and file extension mapping is based on [this](colormap.yaml) file containing color mappings for various file types.
 We used [colorhexa](https://www.colorhexa.com/) to determine the color mappings in HSV color space.
 
-### Garden specifications
-Plant location is based on repo name and file name for consistency,
-see the following pseudocode for calculating plant location and coloring:
-```
-hashcode = hash(repoName + "::" + filePath)
-x = hashcode % width
-y = (hashcode / width) % height
-hsv_h = ColorMap.getByExtension(fileExtension)
-hsv_v = normalize(linesAdded + linesRemoved, 80)
-hsv_s = normalize(complexity, 80)
-```
-This is deterministic and language-agnostic.
-
 ### Design: File to Element Mapping
 The Git Garden maps a variable number of files to a set number of elements (patches) through a two-step process:
 1. **Weighted Voronoi Biome Partitioning**: The garden is divided into biomes (e.g., source code, documentation, configuration). Each biome is assigned an area proportional to the number of files it contains.
 2. **Proportional Patch Allocation**: Within each biome, files are sorted alphabetically. Each file is allocated a number of patches proportional to its line count (size). This ensures that larger files appear as larger clusters within their respective biomes.
 
-The patches within a biome are sorted by their distance and angle from the biome's center (seed point), which creates a cohesive and organized appearance.
-
+The patches within a biome are sorted by their distance and angle from the biome's center (seed point), which creates a cohesive and organized appearance. These center points are defined in `config.yaml` to ensure the garden layout remains consistent even if the state is cleared.
 
 ## Code organization
 Everything is split out into separate files to keep concerns separate and make it easier to understand.

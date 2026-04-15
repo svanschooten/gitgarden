@@ -121,7 +121,7 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 - [x] Compute SHA-256 hash of both config files using `crypto.createHash`
 - [x] Compare against `meta.config_hash` and `meta.colormap_hash` in DB
-- [x] If either changed, set `configChanged = true` — this triggers a full reassignment (seeds may be regenerated if starting_points changed)
+- [x] If either changed, set `configChanged = true` — this triggers a full reassignment (seeds may be regenerated if `center` coordinates changed)
 
 ### 3.4 Derive grid constants
 
@@ -184,8 +184,8 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 ### 6.1 Seed initialization (first run or config change)
 
 - [x] If `biome_seeds` table is empty or `configChanged`:
-    - Read `starting_points` from config. If present, use those coordinates (convert pixel coords to patch-grid coords: `cx = x_coord / PATCH_SIZE`, `cy = y_coord / PATCH_SIZE`)
-    - If `starting_points` missing or incomplete, generate seeds via rejection sampling:
+    - Read `center` from `plant_map.plants` in config. If present, use those coordinates (convert pixel coords to patch-grid coords: `cx = x_coord / PATCH_SIZE`, `cy = y_coord / PATCH_SIZE`)
+    - If `center` missing for a biome, generate seeds via rejection sampling:
         - For each biome, pick random `(cx, cy)` in `[0, gridW) × [0, gridH)`
         - Reject if within `min_distance / PATCH_SIZE` patches of any existing seed
         - Cap retries at 1000; place with warning if exhausted

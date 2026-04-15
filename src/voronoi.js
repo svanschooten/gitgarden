@@ -12,7 +12,6 @@ export function initBiomeSeeds(db, biomes, config, PATCH_SIZE, configChanged) {
   if (existingSeedsCount === 0 || configChanged) {
     db.prepare('DELETE FROM biome_seeds').run();
     
-    const startingPoints = config.starting_points || [];
     const gridW = Math.ceil(config.width / PATCH_SIZE);
     const gridH = Math.ceil(config.height / PATCH_SIZE);
     const minDistancePatches = (config.min_distance || 35) / PATCH_SIZE;
@@ -21,12 +20,11 @@ export function initBiomeSeeds(db, biomes, config, PATCH_SIZE, configChanged) {
 
     for (const biome of biomes) {
       let cx, cy;
-      const sp = startingPoints.find(p => p.type === biome);
-      if (sp) {
-        cx = sp.x / PATCH_SIZE;
-        cy = sp.y / PATCH_SIZE;
+      const center = config.plant_map?.plants?.[biome]?.center;
+      if (center && Array.isArray(center) && center.length === 2) {
+        cx = center[0] / PATCH_SIZE;
+        cy = center[1] / PATCH_SIZE;
       } else {
-        // Rejection sampling
         let attempts = 0;
         while (attempts < 1000) {
           cx = Math.random() * gridW;
@@ -59,7 +57,6 @@ export function computeSeedWeights(db) {
     for (const seed of seeds) {
       const row = rows.find(r => r.biome === seed.biome);
       const count = row ? row.cnt : 0;
-      // Square root softens the weighting
       const weight = totalFiles > 0 ? Math.sqrt(count / totalFiles) : 1.0;
       const finalWeight = count > 0 ? Math.max(0.1, weight) : (totalFiles > 0 ? 0 : 1.0); 
       update.run(finalWeight, seed.biome);

@@ -9,13 +9,10 @@
 export function computeHealth(currentHealth, linesAdded, linesRemoved, maxScore) {
   let delta = 0;
   if (linesAdded >= linesRemoved * 2 && linesAdded > 0) {
-    // Growth
     delta = Math.min(20, Math.max(1, Math.round(linesAdded / 10)));
   } else if (linesRemoved > linesAdded) {
-    // Decay
     delta = -Math.min(10, Math.max(1, Math.round(linesRemoved / 10)));
   } else {
-    // Maintenance (roughly equal added/removed)
     delta = 5;
   }
   return Math.max(0, Math.min(maxScore, currentHealth + delta));

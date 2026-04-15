@@ -8,10 +8,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /**
  * Render the garden to an interactive HTML file.
  */
-export async function renderHtml(db, config, biomeColors, baseColor, gridW, gridH, PATCH_SIZE, repoRoot) {
+export async function renderHtml(db, config, biomeColors, baseColor, gridW, gridH, PATCH_SIZE, repoRoot, debug = false) {
   const { max_score, width, height } = config;
 
-  // 1. Fetch data
   const assigned = db.prepare(`
     SELECT fp.px, fp.py, f.id as file_id, f.path, f.health, f.biome, f.line_count, f.last_merge
     FROM file_patches fp
@@ -26,16 +25,14 @@ export async function renderHtml(db, config, biomeColors, baseColor, gridW, grid
   }
 
   const biomes = db.prepare(`
-    SELECT biome, COUNT(*) as patch_count 
-    FROM (
-      SELECT f.biome FROM file_patches fp JOIN files f ON f.id = fp.file_id
-    )
-    GROUP BY biome
+    SELECT f.biome, COUNT(*) as patch_count, COUNT(DISTINCT f.id) as file_count
+    FROM file_patches fp
+    JOIN files f ON f.id = fp.file_id
+    GROUP BY f.biome
   `).all();
 
   const seeds = db.prepare('SELECT * FROM biome_seeds').all();
 
-  // Mapping for files to avoid redundancy in SVG
   const fileMap = {};
   for (const patch of assigned) {
     if (!fileMap[patch.file_id]) {
@@ -49,7 +46,6 @@ export async function renderHtml(db, config, biomeColors, baseColor, gridW, grid
     }
   }
 
-  // Group assigned patches by coordinates
   const patchMap = {};
   for (const row of assigned) {
     const key = `${row.px},${row.py}`;
@@ -59,10 +55,8 @@ export async function renderHtml(db, config, biomeColors, baseColor, gridW, grid
     patchMap[key].fileIds.push(row.file_id);
   }
 
-  // 2. Prepare patches for Vue
   const patches = [];
   
-  // Assigned patches
   for (const key in patchMap) {
     const patch = patchMap[key];
     const representativeFile = fileMap[patch.fileIds[0]];
@@ -78,15 +72,14 @@ export async function renderHtml(db, config, biomeColors, baseColor, gridW, grid
     });
   }
 
-  // 3. Prepare Biomes for Legend
   const biomesData = biomes.map(b => ({
     name: b.biome,
     color: `rgb(${(biomeColors[b.biome] || [128, 128, 128]).join(',')})`,
     extensions: biomeToExts[b.biome] || '',
-    count: b.patch_count
+    patchCount: b.patch_count,
+    fileCount: b.file_count
   }));
 
-  // 4. Final HTML Template
   const template = fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8');
   const repoName = path.basename(repoRoot);
   const html = template
@@ -99,9 +92,9 @@ export async function renderHtml(db, config, biomeColors, baseColor, gridW, grid
     .replace(/{{FILE_MAP}}/g, JSON.stringify(fileMap))
     .replace(/{{BIOME_TO_EXTS}}/g, JSON.stringify(biomeToExts))
     .replace(/{{MAX_SCORE}}/g, max_score)
-    .replace(/{{PATCH_SIZE}}/g, PATCH_SIZE);
+    .replace(/{{PATCH_SIZE}}/g, PATCH_SIZE)
+    .replace(/{{DEBUG_DISPLAY}}/g, debug ? 'block' : 'none');
 
-  // 5. Write to files
   const gitgardenDir = path.join(repoRoot, '.gitgarden');
   if (!fs.existsSync(gitgardenDir)) fs.mkdirSync(gitgardenDir, { recursive: true });
   fs.writeFileSync(path.join(gitgardenDir, 'garden.html'), html);

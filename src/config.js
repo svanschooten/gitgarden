@@ -4,9 +4,16 @@ import yaml from 'js-yaml';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { getMeta } from './db.js';
+import * as logger from './logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Load configuration from default and user-specific files.
+ * @param {string} repoRoot 
+ * @param {Database} db 
+ * @returns {Object} Configuration and metadata
+ */
 export function loadConfig(repoRoot, db) {
   const userConfigPath = path.join(repoRoot, '.gitgarden', 'config.yaml');
   const defaultConfigPath = path.join(__dirname, '..', 'config.yaml'); 
@@ -33,7 +40,6 @@ export function loadConfig(repoRoot, db) {
     config = { ...config, ...userConfig };
   }
 
-  // Validation
   if (config.width < 10) config.width = 10;
   if (config.height < 10) config.height = 10;
   if (config.max_score < 10) config.max_score = 10;
@@ -50,7 +56,7 @@ export function loadConfig(repoRoot, db) {
       if (details.extensions) {
         for (const ext of details.extensions) {
           if (extensionToBiome[ext]) {
-            console.warn(`Warning: Extension ${ext} appears in more than one biome!`);
+            logger.warn(`Warning: Extension ${ext} appears in more than one biome!`);
           }
           extensionToBiome[ext] = biome;
         }
@@ -58,7 +64,6 @@ export function loadConfig(repoRoot, db) {
     }
   }
 
-  // Hash detection
   const userConfigContent = fs.existsSync(userConfigPath) ? fs.readFileSync(userConfigPath, 'utf8') : '';
   const defaultConfigContent = fs.existsSync(defaultConfigPath) ? fs.readFileSync(defaultConfigPath, 'utf8') : '';
   
@@ -81,10 +86,67 @@ export function loadConfig(repoRoot, db) {
   };
 }
 
+/**
+ * Derive grid-related constants from configuration.
+ * @param {Object} config 
+ * @returns {Object} Grid constants
+ */
 export function deriveGridConstants(config) {
   const PATCH_SIZE = 4;
   const gridW = Math.ceil(config.width / PATCH_SIZE);
   const gridH = Math.ceil(config.height / PATCH_SIZE);
   const totalPatches = gridW * gridH;
   return { PATCH_SIZE, gridW, gridH, totalPatches };
+}
+
+/**
+ * Randomize biome center points.
+ * @param {Object} config 
+ */
+export function randomizeBiomeCenters(config) {
+  if (!config.plant_map || !config.plant_map.plants) return;
+  const plants = config.plant_map.plants;
+  const plantNames = Object.keys(plants);
+  const minDistance = config.min_distance || 35;
+  const width = config.width || 512;
+  const height = config.height || 512;
+
+  const centers = [];
+  const maxAttempts = 1000;
+
+  const marginX = width > 2 * minDistance ? minDistance : 0;
+  const marginY = height > 2 * minDistance ? minDistance : 0;
+  const rangeX = width - 2 * marginX;
+  const rangeY = height - 2 * marginY;
+
+  for (const name of plantNames) {
+    let placed = false;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const x = Math.floor(Math.random() * rangeX) + marginX;
+      const y = Math.floor(Math.random() * rangeY) + marginY;
+
+      let tooClose = false;
+      for (const other of centers) {
+        const dist = Math.sqrt(Math.pow(x - other.x, 2) + Math.pow(y - other.y, 2));
+        if (dist < minDistance) {
+          tooClose = true;
+          break;
+        }
+      }
+
+      if (!tooClose) {
+        plants[name].center = [x, y];
+        centers.push({ x, y });
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      logger.warn(`Could not place biome ${name} within min_distance. Using fallback or overlapping.`);
+      const x = Math.floor(Math.random() * rangeX) + marginX;
+      const y = Math.floor(Math.random() * rangeY) + marginY;
+      plants[name].center = [x, y];
+      centers.push({ x, y });
+    }
+  }
 }
