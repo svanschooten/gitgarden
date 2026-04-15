@@ -78,7 +78,10 @@ export function computeSeedWeights(db) {
  */
 export function computeVoronoiMap(seeds, gridW, gridH) {
   const biomeMap = new Uint8Array(gridW * gridH);
+  const activeSeeds = seeds.filter(s => s.weight > 0);
   const biomes = seeds.map(s => s.biome);
+
+  if (activeSeeds.length === 0) return { biomeMap, biomes };
 
   for (let y = 0; y < gridH; y++) {
     for (let x = 0; x < gridW; x++) {
@@ -87,6 +90,7 @@ export function computeVoronoiMap(seeds, gridW, gridH) {
 
       for (let i = 0; i < seeds.length; i++) {
         const seed = seeds[i];
+        if (seed.weight === 0) continue;
         const dx = x - seed.cx;
         const dy = y - seed.cy;
         const distSq = dx * dx + dy * dy;

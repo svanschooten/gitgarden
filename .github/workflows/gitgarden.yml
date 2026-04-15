@@ -1,4 +1,4 @@
-name: Maintain GitGarden
+name: Git Garden
 
 on:
   workflow_call:
@@ -40,42 +40,24 @@ jobs:
           cd .git-garden-tool
           npm install
 
-      - name: Generate and Publish Git Garden
+      - name: Generate Garden
         run: |
-          REPO_NAME=$(basename $GITHUB_REPOSITORY)
+          mkdir -p docs
           
-          # Determine target and token
-          TARGET="${{ inputs.target }}"
-          TOKEN="${{ secrets.GARDEN_TOKEN }}"
-          if [ -z "$TOKEN" ]; then
-            TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          FROM_SHA="${{ github.event.before }}"
+          TO_SHA="${{ github.sha }}"
+          
+          # If first run, FROM_SHA might be zeros
+          if [ "$FROM_SHA" = "0000000000000000000000000000000000000000" ] || [ -z "$FROM_SHA" ]; then
+            FROM_SHA=""
           fi
           
-          if [ -z "$TARGET" ]; then
-            # Use the current repository as default
-            TARGET="https://x-access-token:$TOKEN@github.com/$GITHUB_REPOSITORY.git"
-          else
-            # If target is provided and is a GitHub HTTPS URL, inject token
-            if [[ "$TARGET" == https://github.com/* ]]; then
-              TARGET="https://x-access-token:$TOKEN@${TARGET#https://}"
-            fi
-          fi
-          
-          # Prepare arguments
-          args=(--repo "$REPO_NAME" --target "$TARGET")
-          
-          # Get list of changed files in the last commit
-          for f in $(git diff-tree --no-commit-id --name-only -r HEAD); do
-            if [ -f "$f" ]; then
-              # Get file content and escape it for command line
-              content=$(git show HEAD:"$f" 2>/dev/null | sed 's/"/\\\\"/g' | tr '\n' ' ')
-              args+=(--file "$f" --diff "$content")
-            fi
-          done
-          
-          if [ ${#args[@]} -le 2 ]; then
-            echo "No changed files to analyze."
-            exit 0
-          fi
-          
-          node .git-garden-tool/src/garden.js "${args[@]}"
+          node .git-garden-tool/cli.js generate --from "$FROM_SHA" --to "$TO_SHA"
+
+      - name: Publish to Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: docs
+          branch: gh-pages
+          clean: false # keep other docs
+          silent: true

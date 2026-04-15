@@ -1,0 +1,60 @@
+# Git Garden Configuration
+# For more info see https://github.com/svanschooten/gitgarden
+width: 512
+height: 512
+max_score: 200
+min_distance: 35
+fill_factor: 0.85
+static_paths: []
+plant_map:
+  plants:
+    grass:
+      extensions:
+        - .js
+        - .ts
+      color:
+        - 33
+        - 212
+        - 30
+    daisy:
+      extensions:
+        - .java
+      color:
+        - 255
+        - 255
+        - 255
+    lavender:
+      extensions:
+        - .py
+      color:
+        - 176
+        - 131
+        - 255
+    cornflower:
+      extensions:
+        - .go
+      color:
+        - 50
+        - 95
+        - 255
+    tulip:
+      extensions:
+        - .rs
+      color:
+        - 255
+        - 142
+        - 0
+    dirt:
+      extensions:
+        - .md
+        - .yml
+        - .yaml
+        - .json
+      color:
+        - 110
+        - 61
+        - 0
+  base:
+    - 138
+    - 204
+    - 255

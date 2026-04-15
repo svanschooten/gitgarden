@@ -144,7 +144,7 @@ jobs:
 
 function updateGitignore(repoRoot) {
     const gitignoreFile = path.join(repoRoot, '.gitignore');
-    const ignoreEntries = ['garden.png', '.git-garden-tool/', '.gitgarden/state.db', '.gitgarden/garden.png'];
+    const ignoreEntries = ['garden.png', '.git-garden-tool/', '.gitgarden/state.db', '.gitgarden/garden.png', '.gitgarden/garden.html'];
     
     if (fs.existsSync(gitignoreFile)) {
         let lines = fs.readFileSync(gitignoreFile, 'utf8').split(/\r?\n/);
@@ -218,8 +218,10 @@ async function handleClearState() {
         // We keep config.yaml but remove state.db
         const dbFile = path.join(stateDir, 'state.db');
         const gardenPngInDir = path.join(stateDir, 'garden.png');
+        const gardenHtmlInDir = path.join(stateDir, 'garden.html');
         if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile);
         if (fs.existsSync(gardenPngInDir)) fs.unlinkSync(gardenPngInDir);
+        if (fs.existsSync(gardenHtmlInDir)) fs.unlinkSync(gardenHtmlInDir);
         console.log('✓ Cleared .gitgarden state');
     }
     if (fs.existsSync(gardenPng)) {

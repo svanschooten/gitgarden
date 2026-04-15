@@ -8,10 +8,10 @@ This plan consolidates the three existing plans (PLAN.md, PLAN2.md, PLAN3.md) in
 
 ### 1.1 Update `package.json`
 
-- [ ] Replace `canvas` dependency with `pngjs` (pure-JS, no native compile, CI-safe)
-- [ ] Add `better-sqlite3` for state management
-- [ ] Keep `js-yaml` (already present, pure JS) and `indent-complexity`
-- [ ] Confirm `"type": "module"` and `"engines": { "node": ">=24.0.0" }`
+- [x] Replace `canvas` dependency with `pngjs` (pure-JS, no native compile, CI-safe)
+- [x] Add `better-sqlite3` for state management
+- [x] Keep `js-yaml` (already present, pure JS) and `indent-complexity`
+- [x] Confirm `"type": "module"` and `"engines": { "node": ">=24.0.0" }`
 
 ```json
 {
@@ -102,13 +102,13 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 ### 2.2 DB helpers
 
-- [ ] `openDb(repoRoot)` — open (or create) `.gitgarden/state.db`, run `PRAGMA journal_mode=WAL`, `PRAGMA synchronous=NORMAL`, run migrations via `CREATE TABLE IF NOT EXISTS`
-- [ ] `getMeta(db, key)` / `setMeta(db, key, value)` — read/write meta table
-- [ ] `upsertFile(db, { path, biome, line_count, health, last_merge })` — insert or update a file row
-- [ ] `deleteFile(db, path)` — remove file + cascade deletes file_patches
-- [ ] `clearAssignments(db)` — delete all rows from `file_patches` and `vacant_patches` (used before full reassignment)
-- [ ] `bulkInsertPatches(db, patches)` — batch insert into `file_patches` inside a transaction
-- [ ] `bulkInsertVacant(db, vacant)` — batch insert into `vacant_patches` inside a transaction
+- [x] `openDb(repoRoot)` — open (or create) `.gitgarden/state.db`, run `PRAGMA journal_mode=WAL`, `PRAGMA synchronous=NORMAL`, run migrations via `CREATE TABLE IF NOT EXISTS`
+- [x] `getMeta(db, key)` / `setMeta(db, key, value)` — read/write meta table
+- [x] `upsertFile(db, { path, biome, line_count, health, last_merge })` — insert or update a file row
+- [x] `deleteFile(db, path)` — remove file + cascade deletes file_patches
+- [x] `clearAssignments(db)` — delete all rows from `file_patches` and `vacant_patches` (used before full reassignment)
+- [x] `bulkInsertPatches(db, patches)` — batch insert into `file_patches` inside a transaction
+- [x] `bulkInsertVacant(db, vacant)` — batch insert into `vacant_patches` inside a transaction
 
 ---
 
@@ -116,30 +116,29 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 ### 3.1 Load and validate
 
- - [ ] Read `.gitgarden/config.yaml` (using `js-yaml`)
-- [ ] Read `colormap.yaml` from the Git Garden installation directory (the tool's own config)
-- [ ] Validate required fields: `width` (≥10), `height` (≥10), `max_score` (≥10), `min_distance` (≥1)
-- [ ] Validate colormap: each plant has `extensions` (array of strings) and `color` ([R, G, B]); `base` is a top-level [R, G, B]
-- [ ] Warn if any extension appears in more than one plant (overlap check)
+- [x] Read `.gitgarden/config.yaml` (using `js-yaml`)
+- [x] Validate required fields: `width` (≥10), `height` (≥10), `max_score` (≥10), `min_distance` (≥1)
+- [x] Validate plant map: each plant has `extensions` (array of strings) and `color` ([R, G, B]); `base` is a top-level [R, G, B]
+- [x] Warn if any extension appears in more than one plant (overlap check)
 
 ### 3.2 Build lookup maps
 
-- [ ] `extensionToBiome` map: `{ '.js': 'grass', '.ts': 'grass', '.py': 'lavender', ... }`
-- [ ] `biomeColors` map: `{ 'grass': [33, 212, 30], 'lavender': [176, 131, 255], ... }`
-- [ ] `baseColor`: the background/vacant color from colormap (e.g., `[138, 204, 255]`)
+- [x] `extensionToBiome` map: `{ '.js': 'grass', '.ts': 'grass', '.py': 'lavender', ... }`
+- [x] `biomeColors` map: `{ 'grass': [33, 212, 30], 'lavender': [176, 131, 255], ... }`
+- [x] `baseColor`: the background/vacant color from colormap (e.g., `[138, 204, 255]`)
 
 ### 3.3 Config change detection
 
-- [ ] Compute SHA-256 hash of both config files using `crypto.createHash`
-- [ ] Compare against `meta.config_hash` and `meta.colormap_hash` in DB
-- [ ] If either changed, set `configChanged = true` — this triggers a full reassignment (seeds may be regenerated if starting_points changed)
+- [x] Compute SHA-256 hash of both config files using `crypto.createHash`
+- [x] Compare against `meta.config_hash` and `meta.colormap_hash` in DB
+- [x] If either changed, set `configChanged = true` — this triggers a full reassignment (seeds may be regenerated if starting_points changed)
 
 ### 3.4 Derive grid constants
 
-- [ ] `PATCH_SIZE = 4` (each patch = 4×4 pixels, makes files visible)
-- [ ] `gridW = Math.ceil(config.width / PATCH_SIZE)`
-- [ ] `gridH = Math.ceil(config.height / PATCH_SIZE)`
-- [ ] `totalPatches = gridW * gridH`
+- [x] `PATCH_SIZE = 4` (each patch = 4×4 pixels, makes files visible)
+- [x] `gridW = Math.ceil(config.width / PATCH_SIZE)`
+- [x] `gridH = Math.ceil(config.height / PATCH_SIZE)`
+- [x] `totalPatches = gridW * gridH`
 
 ---
 
@@ -147,17 +146,17 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 ### 4.1 Walk the file tree
 
-- [ ] Use `fs.readdir` with `{ withFileTypes: true, recursive: true }` (native in Node 24)
-- [ ] Skip directories: `.git`, `node_modules`, `.gitgarden`
-- [ ] Skip paths matching `static_paths` from config (use `path.matchesGlob` or prefix match)
-- [ ] Apply `.gitignore` rules: shell out to `git ls-files` to get the tracked file list, then intersect with the walk result. This is simpler and more correct than reimplementing gitignore logic
+- [x] Use `fs.readdir` with `{ withFileTypes: true, recursive: true }` (native in Node 24)
+- [x] Skip directories: `.git`, `node_modules`, `.gitgarden`
+- [x] Skip paths matching `static_paths` from config (use `path.matchesGlob` or prefix match)
+- [x] Apply `.gitignore` rules: shell out to `git ls-files` to get the tracked file list, then intersect with the walk result. This is simpler and more correct than reimplementing gitignore logic
 
 ### 4.2 Classify and count
 
-- [ ] For each file, extract extension → look up biome via `extensionToBiome`. Fallback: `dirt` biome
-- [ ] Count lines per file using a streaming read (open `ReadStream`, count `\n` chars). Do not load entire file into memory
-- [ ] Return array: `{ path, biome, lineCount }`
-- [ ] Files with 0 lines get `lineCount = 1` minimum (guard against division by zero, ensure every file gets at least one patch)
+- [x] For each file, extract extension → look up biome via `extensionToBiome`. Fallback: `dirt` biome
+- [x] Count lines per file using a streaming read (open `ReadStream`, count `\n` chars). Do not load entire file into memory
+- [x] Return array: `{ path, biome, lineCount }`
+- [x] Files with 0 lines get `lineCount = 1` minimum (guard against division by zero, ensure every file gets at least one patch)
 
 ---
 
@@ -165,28 +164,28 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 ### 5.1 Diff stats (`src/git.js`)
 
-- [ ] `getDiffStats(repoRoot, fromCommit, toCommit)` — shell out to git:
+- [x] `getDiffStats(repoRoot, fromCommit, toCommit)` — shell out to git:
   ```js
   const { stdout } = await execFile('git', [
     'diff', '--numstat', '-M', fromCommit, toCommit
   ], { cwd: repoRoot });
   ```
-- [ ] Parse `--numstat` output: each line is `{added}\t{deleted}\t{filepath}`
-- [ ] Handle renamed files: git outputs `old => new` in the path column with `-M` flag
-- [ ] Return map: `{ [filepath]: { linesAdded, linesRemoved, renamedFrom? } }`
+- [x] Parse `--numstat` output: each line is `{added}\t{deleted}\t{filepath}`
+- [x] Handle renamed files: git outputs `old => new` in the path column with `-M` flag
+- [x] Return map: `{ [filepath]: { linesAdded, linesRemoved, renamedFrom? } }`
 - [ ] On first run (no `last_run_commit` in meta), use `git log --numstat --format="" HEAD~1..HEAD` or diff against initial commit
 
 ### 5.2 Health scoring (`src/health.js`)
 
-- [ ] `computeHealth(currentHealth, linesAdded, linesRemoved, maxScore)`:
+- [x] `computeHealth(currentHealth, linesAdded, linesRemoved, maxScore)`:
     - **Growth** (added > removed by 2×): `delta = +Math.min(20, Math.round(linesAdded / 10))`
     - **Maintenance** (roughly equal added/removed): `delta = +5` (pruning is healthy)
     - **Decay** (removed > added): `delta = -Math.min(10, Math.round(linesRemoved / 10))`
     - **Passive deterioration** (unchanged files, applied separately): `delta = -2`
     - Clamp: `Math.max(0, Math.min(maxScore, currentHealth + delta))`
-- [ ] Apply health updates to all files in DB inside a transaction
-- [ ] Apply passive deterioration tick (`-2`) to all files NOT in the diff, then clamp to `≥ 0`
-- [ ] Update `files.last_merge` to current Unix timestamp for modified files
+- [x] Apply health updates to all files in DB inside a transaction
+- [x] Apply passive deterioration tick (`-2`) to all files NOT in the diff, then clamp to `≥ 0`
+- [x] Update `files.last_merge` to current Unix timestamp for modified files
 
 ---
 
@@ -194,7 +193,7 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 ### 6.1 Seed initialization (first run or config change)
 
-- [ ] If `biome_seeds` table is empty or `configChanged`:
+- [x] If `biome_seeds` table is empty or `configChanged`:
     - Read `starting_points` from config. If present, use those coordinates (convert pixel coords to patch-grid coords: `cx = x_coord / PATCH_SIZE`, `cy = y_coord / PATCH_SIZE`)
     - If `starting_points` missing or incomplete, generate seeds via rejection sampling:
         - For each biome, pick random `(cx, cy)` in `[0, gridW) × [0, gridH)`
@@ -205,7 +204,7 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 ### 6.2 Compute weights
 
-- [ ] `computeSeedWeights(db)`:
+- [x] `computeSeedWeights(db)`:
     - Count files per biome: `SELECT biome, COUNT(*) as cnt FROM files GROUP BY biome`
     - Total files = sum of all counts
     - `weight_i = Math.sqrt(count_i / totalFiles)` — square root softens the weighting so dominant biomes don't completely crowd out small ones
@@ -214,7 +213,7 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 ### 6.3 Generate biome map
 
-- [ ] `computeVoronoiMap(seeds, gridW, gridH)`:
+- [x] `computeVoronoiMap(seeds, gridW, gridH)`:
     - Allocate `Uint8Array` of length `gridW * gridH` (biome index per patch)
     - Build a `biomes` index array so callers can look up biome name by index
     - For each patch `(x, y)`:
@@ -229,7 +228,7 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 ### 6.4 Extract per-biome patch lists
 
-- [ ] `extractBiomePatches(biomeMap, biomes, gridW, gridH)`:
+- [x] `extractBiomePatches(biomeMap, biomes, gridW, gridH)`:
     - Iterate the biome map, group patches by biome name
     - Return `Map<biomeName, [{ x, y }]>`
 
@@ -241,7 +240,7 @@ CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
 
 Sort a biome's patches by angle then distance from the biome seed. This creates a natural "garden growth" pattern radiating outward.
 
-- [ ] `spiralSort(patches, seedX, seedY)`:
+- [x] `spiralSort(patches, seedX, seedY)`:
   ```js
   return patches.sort((a, b) => {
     const angleA = Math.atan2(a.y - seedY, a.x - seedX);
@@ -254,8 +253,8 @@ Sort a biome's patches by angle then distance from the biome seed. This creates 
 
 ### 7.2 Full assignment (first run, config change, or significant biome shift)
 
-- [ ] Clear `file_patches` and `vacant_patches` tables
-- [ ] For each biome:
+- [x] Clear `file_patches` and `vacant_patches` tables
+- [x] For each biome:
     1. Fetch files in this biome from DB, ordered by `path ASC` (lexicographic sort clusters directory siblings together)
     2. Get the biome's spiral-sorted patch list
     3. Compute total lines across all files in this biome
@@ -265,7 +264,7 @@ Sort a biome's patches by angle then distance from the biome seed. This creates 
     7. Walk the spiral-sorted patch list with a cursor, assigning `cellCount` consecutive patches to each file
     8. Insert `file_patches` rows for assigned patches
     9. Insert remaining patches into `vacant_patches`
-- [ ] Wrap in a single transaction for performance
+- [x] Wrap in a single transaction for performance
 
 ### 7.3 Incremental assignment (future optimization — noted here for schema compatibility)
 
@@ -284,7 +283,7 @@ On subsequent runs where only a few files changed:
 
 ### 8.1 Color interpolation
 
-- [ ] `blendColor(biomeColor, health, maxScore)`:
+- [x] `blendColor(biomeColor, health, maxScore)`:
   ```js
   const t = health / maxScore;  // 0.0 = withered, 1.0 = full bloom
   const withered = [110, 80, 40]; // desaturated brown
@@ -296,17 +295,17 @@ On subsequent runs where only a few files changed:
 
 ### 8.2 Build pixel buffer
 
-- [ ] Create `PNG` instance with `width: config.width, height: config.height, filterType: -1`
-- [ ] Fill entire buffer with a background color (e.g., `#1a1a2e` dark navy or the `baseColor` dimmed)
-- [ ] Query DB for all assigned patches + health + biome color:
+- [x] Create `PNG` instance with `width: config.width, height: config.height, filterType: -1`
+- [x] Fill entire buffer with a background color (e.g., `#1a1a2e` dark navy or the `baseColor` dimmed)
+- [x] Query DB for all assigned patches + health + biome color:
   ```sql
   SELECT fp.px, fp.py, f.health, bs.biome
   FROM file_patches fp
   JOIN files f ON f.id = fp.file_id
   JOIN biome_seeds bs ON f.biome = bs.biome
   ```
-- [ ] For each patch, compute the pixel color using `blendColor(biomeColors[biome], health, maxScore)`
-- [ ] Draw the patch as a `PATCH_SIZE × PATCH_SIZE` block:
+- [x] For each patch, compute the pixel color using `blendColor(biomeColors[biome], health, maxScore)`
+- [x] Draw the patch as a `PATCH_SIZE × PATCH_SIZE` block:
   ```js
   const startX = px * PATCH_SIZE;
   const startY = py * PATCH_SIZE;
@@ -320,12 +319,12 @@ On subsequent runs where only a few files changed:
     }
   }
   ```
-- [ ] For vacant patches, draw with a dimmed version of the biome color (or the `baseColor`) to show biome territory
+- [x] For vacant patches, draw with a dimmed version of the biome color (or the `baseColor`) to show biome territory
 
 ### 8.3 Export
 
-- [ ] Write to `{repoRoot}/.gitgarden/garden.png` using `png.pack().pipe(fs.createWriteStream(...))`
-- [ ] Also write/copy to `{repoRoot}/docs/garden.png` if a `docs/` dir exists (for GitHub Pages)
+- [x] Write to `{repoRoot}/.gitgarden/garden.png` using `png.pack().pipe(fs.createWriteStream(...))`
+- [x] Also write/copy to `{repoRoot}/docs/garden.png` if a `docs/` dir exists (for GitHub Pages)
 
 ---
 
@@ -407,10 +406,10 @@ export async function generateGarden(repoRoot, fromCommit, toCommit) {
 
 ### 9.2 `syncFiles` helper
 
-- [ ] Compare scanned files against DB: `SELECT path FROM files`
-- [ ] Files in scan but not DB → insert (new files)
-- [ ] Files in DB but not scan → delete (removed files, cascades to file_patches)
-- [ ] Files in both → update `line_count` if changed, update `biome` if extension mapping changed
+- [x] Compare scanned files against DB: `SELECT path FROM files`
+- [x] Files in scan but not DB → insert (new files)
+- [x] Files in DB but not scan → delete (removed files, cascades to file_patches)
+- [x] Files in both → update `line_count` if changed, update `biome` if extension mapping changed
 
 ---
 
@@ -418,15 +417,15 @@ export async function generateGarden(repoRoot, fromCommit, toCommit) {
 
 ### 10.1 Update `cli.js`
 
- - [ ] Update `regenerate` command: remove `.gitgarden/state.db`
-- [ ] Update `install` command: create `.gitgarden/` directory and `.gitgarden/config.yaml`
-- [ ] Remove the old root-level config file creation code
-- [ ] Add `.gitgarden/state.db` and `.gitgarden/garden.png` to `.gitignore` entries
-- [ ] The `install` command no longer needs to create a state file — the DB is created on first `generateGarden` run
+- [x] Update `regenerate` command: remove `.gitgarden/state.db`
+- [x] Update `install` command: create `.gitgarden/` directory and `.gitgarden/config.yaml`
+- [x] Remove the old root-level config file creation code
+- [x] Add `.gitgarden/state.db` and `.gitgarden/garden.png` to `.gitignore` entries
+- [x] The `install` command no longer needs to create a state file — the DB is created on first `generateGarden` run
 
 ### 10.2 Update GitHub Actions workflow
 
-The reusable workflow at `svanschooten/gitgarden/.github/workflows/gitgarden.yml` should:
+- [x] The reusable workflow at `svanschooten/gitgarden/.github/workflows/gitgarden.yml` should:
 1. Clone the target repository
 2. Install Git Garden CLI (`npm install -g git-garden` or use the reusable workflow)
 3. Run `git-garden generate --from ${{ github.event.before }} --to ${{ github.sha }}`
@@ -434,7 +433,7 @@ The reusable workflow at `svanschooten/gitgarden/.github/workflows/gitgarden.yml
 
 ### 10.3 Add `generate` CLI command
 
-- [ ] In `cli.js`, add handler for `git-garden generate`:
+- [x] In `cli.js`, add handler for `git-garden generate`:
   ```js
   } else if (command === 'generate') {
     let fromCommit, toCommit;
@@ -445,7 +444,7 @@ The reusable workflow at `svanschooten/gitgarden/.github/workflows/gitgarden.yml
     await generateGarden(process.cwd(), fromCommit, toCommit || 'HEAD');
   }
   ```
-- [ ] Update `showHelp()` to include the new command
+- [x] Update `showHelp()` to include the new command
 
 ---
 
@@ -453,22 +452,73 @@ The reusable workflow at `svanschooten/gitgarden/.github/workflows/gitgarden.yml
 
 ### 11.1 Automated tests (`tests/*.js` using Node 24 built-in `node --test`)
 
-- [ ] **Voronoi correctness**: generate map with 3 seeds at known positions, verify each patch is assigned to the nearest weighted seed
-- [ ] **Weight proportionality**: create seeds with known weights, verify biome sizes roughly follow `weight²` proportions
-- [ ] **Spiral sort**: verify patches are sorted by angle then distance from seed
-- [ ] **Health scoring**: unit test `computeHealth` with various added/removed combinations
-- [ ] **Color blending**: verify `blendColor` at t=0 returns withered color, at t=1 returns biome color
-- [ ] **DB round-trip**: insert files, assign patches, query back, verify consistency
+- [x] **Voronoi correctness**: generate map with 3 seeds at known positions, verify each patch is assigned to the nearest weighted seed
+- [x] **Weight proportionality**: create seeds with known weights, verify biome sizes roughly follow `weight²` proportions
+- [x] **Spiral sort**: verify patches are sorted by angle then distance from seed
+- [x] **Health scoring**: unit test `computeHealth` with various added/removed combinations
+- [x] **Color blending**: verify `blendColor` at t=0 returns withered color, at t=1 returns biome color
+- [x] **DB round-trip**: insert files, assign patches, query back, verify consistency
 
 ### 11.2 Manual visual verification
 
-- [ ] Run against a small synthetic repo (20 files of mixed types)
-- [ ] Verify: distinct biome regions with proportional sizes
-- [ ] Verify: files in the same directory cluster together spatially
-- [ ] Verify: health=0 files show withered color, health=max shows vibrant color
-- [ ] Verify: adding 50 `.ts` files causes the `grass` biome to visually expand on next run
-- [ ] Verify: deleting a file frees its patches (visible as vacant territory)
-- [ ] Verify: the output image dimensions match the config `width` × `height`
+- [x] Run against a small synthetic repo (20 files of mixed types)
+- [x] Verify: distinct biome regions with proportional sizes
+- [x] Verify: files in the same directory cluster together spatially
+- [x] Verify: health=0 files show withered color, health=max shows vibrant color
+- [x] Verify: adding 50 `.ts` files causes the `grass` biome to visually expand on next run
+- [x] Verify: deleting a file frees its patches (visible as vacant territory)
+- [x] Verify: the output image dimensions match the config `width` × `height`
+
+---
+
+## Phase 12 — Interactive Page
+
+### 12.1 HTML Generation (`src/html.js`)
+
+- [x] Create a static HTML generator that produces a standalone `garden.html`
+- [x] **Grid Implementation**: Use CSS Grid to create a grid matching the PNG's patch layout
+    - Each patch in the grid is a `<div>`
+    - Set the background color of each patch using the same `blendColor` logic as the PNG
+- [x] **Data Embedding**: Embed the necessary patch metadata into the HTML as a JSON object
+- [x] **Styles**: Add CSS for the grid, legend, and tooltip
+- [x] **Filter empty biomes**: Ensure biomes with no files do not occupy space and are excluded from the legend.
+- [x] **Display extensions**: Show representative file extensions for each biome in the legend and tooltip.
+
+### 12.2 Interactivity & UI
+
+- [x] **Hover Tooltip**: A lightweight tooltip that follows the mouse, showing basic stats (File, Biome, Health)
+- [x] **Legend**: A visual list of biomes with their colors, extensions, and patch counts
+- [x] **Performance**: Use vanilla JS and event delegation for maximum speed with large grids
+- [x] **Minimalism**: Removed complex highlighting and sidebar info panels to ensure a smooth experience
+
+### 12.3 Pipeline Integration
+
+- [x] Update `generateGarden` in `src/garden.js` to call the HTML generator after PNG rendering
+- [x] Save the output to `.gitgarden/garden.html`
+- [x] Copy to `docs/garden.html` if the directory exists
+- [x] Ensure the GitHub Actions workflow includes `garden.html` in the publication to `gh-pages`
+
+### 12.4 Refactoring & UI Polish
+
+- [x] Extract HTML template to `src/template.html` for better maintainability
+- [x] Make `.garden-wrapper` background transparent in the interactive HTML
+
+### 12.5 Interactive Enhancements
+
+- [x] Remove file extensions from the hover tooltip (keep them in legend/info panel)
+- [x] Highlight all patches of a file when a single-file patch is hovered
+
+### 12.6 Performance Optimization
+
+- [x] Migrated from SVG/Vue/D3 to a native HTML grid (CSS Grid) with vanilla JavaScript
+- [x] Used string concatenation and `innerHTML` for fast grid rendering
+- [x] Implemented event delegation on the grid container for efficient hover tracking
+- [x] Removed all complex highlighting and reactive state to ensure high-performance interactivity
+
+### 12.7 Visualization Options
+
+- [x] Added a "Show Biome Centers" checkbox to the interactive HTML page
+- [x] Render biome seed coordinates (center points) as toggleable overlays on the garden grid
 
 ---
 

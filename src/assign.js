@@ -43,17 +43,22 @@ export function fullAssignment(db, biomePatches, seeds, fillFactor = 0.85) {
       const patchAssignments = [];
       
       if (totalLines > 0) {
-        for (const file of files) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
           const cellCount = Math.max(1, Math.round((file.line_count / totalLines) * totalBiomePatches * fillFactor));
-          const filePatches = sortedPatches.slice(cursor, cursor + cellCount);
-          cursor += cellCount;
+          
+          let filePatches;
+          if (cursor < totalBiomePatches) {
+            filePatches = sortedPatches.slice(cursor, Math.min(totalBiomePatches, cursor + cellCount));
+            cursor += cellCount;
+          } else {
+            // Out of patches, reuse one (wrap around)
+            filePatches = [sortedPatches[i % totalBiomePatches]];
+          }
           
           for (const p of filePatches) {
             patchAssignments.push({ fileId: file.id, px: p.x, py: p.y });
           }
-          
-          // Stop if we ran out of patches
-          if (cursor >= totalBiomePatches) break;
         }
       }
       

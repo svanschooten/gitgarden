@@ -6,6 +6,7 @@ import { applyHealthDeltas, applyPassiveDeterioration } from './health.js';
 import { initBiomeSeeds, computeSeedWeights, computeVoronoiMap, extractBiomePatches } from './voronoi.js';
 import { fullAssignment } from './assign.js';
 import { renderGarden } from './render.js';
+import { renderHtml } from './html.js';
 
 /**
  * Main garden generation pipeline.
@@ -70,9 +71,10 @@ export async function generateGarden(repoRoot, fromCommit, toCommit, overrideFil
     fullAssignment(db, biomePatches, seeds, overrideFillFactor || config.fill_factor || 0.85);
     console.timeEnd('assign');
 
-    // 9. Render PNG
+    // 9. Render PNG & HTML
     console.time('render');
     await renderGarden(db, config, biomeColors, baseColor, gridW, gridH, PATCH_SIZE, repoRoot);
+    await renderHtml(db, config, biomeColors, baseColor, gridW, gridH, PATCH_SIZE, repoRoot);
     console.timeEnd('render');
 
     // 10. Update meta

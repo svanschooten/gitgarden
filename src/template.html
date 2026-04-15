@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Git Garden - {{REPO_NAME}}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0d1117;
+      color: #c9d1d9;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 { margin-bottom: 20px; }
+    .container {
+      display: flex;
+      gap: 20px;
+      max-width: 100%;
+    }
+    .garden-wrapper {
+      position: relative;
+      background-color: transparent;
+      line-height: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-width: 0;
+    }
+    .garden-grid {
+      display: grid;
+      position: relative;
+      width: 100%;
+      height: auto;
+      max-width: 1000px;
+      min-width: 300px;
+      border: 1px solid #30363d;
+      user-select: none;
+    }
+    .patch {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    .sidebar {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .panel {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .panel h3 { margin-top: 0; }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .color-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      margin-right: 8px;
+    }
+    #tooltip {
+      position: fixed;
+      pointer-events: none;
+      background: rgba(22, 27, 34, 0.95);
+      border: 1px solid #30363d;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .seed {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background-color: white;
+      border: 1px solid black;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 10;
+      display: none;
+    }
+    .controls {
+      margin-bottom: 10px;
+    }
+    .controls label {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Git Garden: {{REPO_NAME}}</h1>
+  
+  <div class="container">
+    <div class="garden-wrapper">
+      <div id="garden-grid" class="garden-grid"></div>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <h3>Controls</h3>
+        <div class="controls">
+          <label>
+            <input type="checkbox" id="show-seeds"> Show Biome Centers
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Biomes</h3>
+        <div id="legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tooltip"></div>
+
+  <script>
+    (function() {
+      const patches = {{PATCHES}};
+      const biomes = {{BIOMES}};
+      const fileMap = {{FILE_MAP}};
+      const biomeToExts = {{BIOME_TO_EXTS}};
+      const seeds = {{SEEDS}};
+      const maxScore = {{MAX_SCORE}};
+      const width = {{WIDTH}};
+      const height = {{HEIGHT}};
+      const patchSize = {{PATCH_SIZE}};
+
+      const grid = document.getElementById('garden-grid');
+      const wrapper = document.querySelector('.garden-wrapper');
+      const legend = document.getElementById('legend');
+      const tooltip = document.getElementById('tooltip');
+      const seedCheckbox = document.getElementById('show-seeds');
+
+      // 1. Initial Styles
+      grid.style.gridTemplateColumns = `repeat(${width / patchSize}, 1fr)`;
+      grid.style.gridTemplateRows = `repeat(${height / patchSize}, 1fr)`;
+      grid.style.aspectRatio = `${width} / ${height}`;
+
+      // 2. Render Grid
+      let gridHtml = '';
+      for (let i = 0; i < patches.length; i++) {
+        const p = patches[i];
+        gridHtml += `<div class="patch" data-idx="${i}" style="background-color: ${p.fill}; grid-column: ${Math.floor(p.x / patchSize) + 1}; grid-row: ${Math.floor(p.y / patchSize) + 1};"></div>`;
+      }
+      grid.innerHTML = gridHtml;
+
+      // 2b. Render Seeds
+      seeds.forEach(s => {
+        if (s.weight === 0) return;
+        const div = document.createElement('div');
+        div.className = 'seed';
+        div.title = `Center of ${s.biome}`;
+        // cx, cy are in grid units.
+        div.style.left = `${(s.cx * patchSize / width) * 100}%`;
+        div.style.top = `${(s.cy * patchSize / height) * 100}%`;
+        grid.appendChild(div);
+      });
+
+      // 3. Render Legend
+      let legendHtml = '';
+      for (const b of biomes) {
+        legendHtml += `
+          <div class="legend-item">
+            <span class="color-box" style="background-color: ${b.color}"></span>
+            <span class="label">
+              <strong>${b.name}</strong>
+              ${b.extensions ? `<span> (${b.extensions})</span>` : ''}
+              <br><small>${b.count} patches</small>
+            </span>
+          </div>
+        `;
+      }
+      legend.innerHTML = legendHtml;
+
+      // 4. Interactivity
+      grid.addEventListener('mousemove', function(e) {
+        const target = e.target;
+        const idx = target.getAttribute('data-idx');
+        
+        // Tooltip Position
+        tooltip.style.left = (e.clientX + 15) + 'px';
+        tooltip.style.top = (e.clientY + 15) + 'px';
+
+        if (idx !== null) {
+          const patch = patches[idx];
+          tooltip.style.display = 'block';
+
+          const files = (patch.fileIds || []).map(id => fileMap[id]);
+          
+          // Update Tooltip
+          if (files.length === 1) {
+            const f = files[0];
+            tooltip.innerHTML = `<strong>${f.path.split('/').pop()}</strong><br>Biome: ${f.biome}<br>Health: ${f.health}/${maxScore}`;
+          } else if (files.length > 1) {
+            tooltip.innerHTML = `<strong>${files.length} Files</strong><br>Biome: ${files[0].biome}`;
+          } else {
+            tooltip.innerHTML = `<strong>Vacant</strong><br>Biome: ${patch.biome}`;
+          }
+        } else {
+          tooltip.style.display = 'none';
+        }
+      });
+
+      grid.addEventListener('mouseleave', function() {
+        tooltip.style.display = 'none';
+      });
+
+      seedCheckbox.addEventListener('change', function() {
+        const display = this.checked ? 'block' : 'none';
+        document.querySelectorAll('.seed').forEach(s => s.style.display = display);
+      });
+
+    })();
+  </script>
+</body>
+</html>
