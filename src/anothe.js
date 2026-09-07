@@ -1,1 +1,0 @@
-function anothe() { console.log('anothe'); }

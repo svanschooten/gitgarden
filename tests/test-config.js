@@ -2,11 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import yaml from 'js-yaml';
 import { loadConfig, deriveGridConstants } from '../src/config.js';
 import { openDb } from '../src/db.js';
+import { silence } from '../src/logger.js';
 
-const testRepoRoot = path.join(process.cwd(), 'test-repo-config');
+// node --test parses this process's stdout for its own IPC stream; library
+// logging must not be interleaved into it.
+silence();
+
+const testRepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'test-repo-config-'));
 
 test('Configuration loading', async (t) => {
   if (fs.existsSync(testRepoRoot)) {

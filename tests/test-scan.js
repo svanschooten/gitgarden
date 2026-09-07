@@ -2,10 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { execSync } from 'child_process';
-import { scanFiles } from '../src/scan.js';
+import { scanFiles, measureFile } from '../src/scan.js';
+import { silence } from '../src/logger.js';
 
-const testRepoRoot = path.join(process.cwd(), 'test-repo-scan');
+// node --test parses this process's stdout for its own IPC stream; library
+// logging must not be interleaved into it.
+silence();
+
+const testRepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'test-repo-scan-'));
 
 test('Repository scanning', async (t) => {
   if (fs.existsSync(testRepoRoot)) {
@@ -66,10 +72,37 @@ test('Repository scanning', async (t) => {
     assert.strictEqual(otherJs.biome, 'grass');
   });
 
+  await t.test('scanFiles measures indentation complexity', async () => {
+    fs.writeFileSync(path.join(testRepoRoot, 'nested.js'),
+      'function a() {\n  if (x) {\n    for (;;) {\n      while (y) {\n        deep();\n      }\n    }\n  }\n}\n');
+    fs.writeFileSync(path.join(testRepoRoot, 'flat.js'), 'a();\nb();\nc();\nd();\n');
+    execSync('git add nested.js flat.js', { cwd: testRepoRoot });
+    execSync('git commit -m "complexity fixtures"', { cwd: testRepoRoot });
+
+    const results = await scanFiles(testRepoRoot, extensionToBiome);
+    const nested = results.find(r => r.path === 'nested.js');
+    const flat = results.find(r => r.path === 'flat.js');
+
+    assert.ok(nested.complexity > flat.complexity, 'deeply nested code scores higher');
+    assert.strictEqual(flat.complexity, 0, 'unindented code has no nesting cost');
+  });
+
+  await t.test('measureFile handles binary and newline-less files', () => {
+    const binary = path.join(testRepoRoot, 'blob.bin');
+    fs.writeFileSync(binary, Buffer.from([0x00, 0x01, 0x02, 0x00]));
+    assert.deepStrictEqual(measureFile(binary), { lineCount: 1, complexity: 0 });
+
+    const noTrailing = path.join(testRepoRoot, 'no-trailing.txt');
+    fs.writeFileSync(noTrailing, 'one\ntwo');
+    assert.strictEqual(measureFile(noTrailing).lineCount, 2, 'final line without \\n still counts');
+
+    assert.strictEqual(measureFile(path.join(testRepoRoot, 'does-not-exist')), null);
+  });
+
   await t.test('scanFiles skips static paths', async () => {
     const results = await scanFiles(testRepoRoot, extensionToBiome, ['subdir']);
-    assert.strictEqual(results.length, 2);
     assert.ok(!results.some(r => r.path.startsWith('subdir')));
+    assert.ok(results.some(r => r.path === 'test.js'));
   });
 
   fs.rmSync(testRepoRoot, { recursive: true, force: true });

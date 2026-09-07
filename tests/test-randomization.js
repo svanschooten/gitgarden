@@ -2,26 +2,25 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'fs';
 import path from 'path';
+import os from 'node:os';
 import { execSync } from 'child_process';
 import yaml from 'js-yaml';
 
+const repoRoot = path.join(import.meta.dirname, '..');
+const cliPath = path.join(repoRoot, 'cli.js');
+
 test('Randomization of biome centers during install', async () => {
-    const testRepo = path.join(process.cwd(), 'test-repo-random');
-    if (fs.existsSync(testRepo)) fs.rmSync(testRepo, { recursive: true, force: true });
-    fs.mkdirSync(testRepo);
+    const testRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'test-repo-random-'));
     execSync('git init', { cwd: testRepo });
-    
-    const cliPath = path.join(process.cwd(), 'cli.js');
-    const rootConfigPath = path.join(process.cwd(), 'config.yaml');
+
+    const rootConfigPath = path.join(repoRoot, 'config.yaml');
     const rootConfig = yaml.load(fs.readFileSync(rootConfigPath, 'utf8'));
     
     // Run install twice in different repos to compare results
     execSync(`echo y | node ${cliPath} install`, { cwd: testRepo });
     const config1 = yaml.load(fs.readFileSync(path.join(testRepo, '.gitgarden', 'config.yaml'), 'utf8'));
     
-    const testRepo2 = path.join(process.cwd(), 'test-repo-random-2');
-    if (fs.existsSync(testRepo2)) fs.rmSync(testRepo2, { recursive: true, force: true });
-    fs.mkdirSync(testRepo2);
+    const testRepo2 = fs.mkdtempSync(path.join(os.tmpdir(), 'test-repo-random-2-'));
     execSync('git init', { cwd: testRepo2 });
     
     execSync(`echo y | node ${cliPath} install`, { cwd: testRepo2 });

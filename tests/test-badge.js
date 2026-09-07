@@ -2,9 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { updateBadge } from '../src/badge.js';
+import { silence } from '../src/logger.js';
 
-const testRepo = path.join(process.cwd(), 'test-badge-repo');
+// node --test parses this process's stdout for its own IPC stream; library
+// logging must not be interleaved into it.
+silence();
+
+const testRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'test-badge-repo-'));
 
 test('Badge Command', async (t) => {
   if (fs.existsSync(testRepo)) {

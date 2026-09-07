@@ -1,8 +1,8 @@
-import { openDb, getMeta, setMeta, upsertFile, deleteFile } from './db.js';
+import { openDb, setMeta, upsertFile, deleteFile, closeDb } from './db.js';
 import { loadConfig, deriveGridConstants } from './config.js';
 import { scanFiles } from './scan.js';
-import { getDiffStats } from './git.js';
-import { applyHealthDeltas, applyPassiveDeterioration } from './health.js';
+import { getCommitHistory, getTreeFiles } from './git.js';
+import { replayHealth } from './health.js';
 import { initBiomeSeeds, computeSeedWeights, computeVoronoiMap, extractBiomePatches } from './voronoi.js';
 import { fullAssignment } from './assign.js';
 import { renderGarden } from './render.js';
@@ -11,42 +11,47 @@ import * as logger from './logger.js';
 
 /**
  * Main garden generation pipeline.
- * @param {string} repoRoot 
- * @param {string} fromCommit 
- * @param {string} toCommit 
- * @param {boolean} debug 
+ *
+ * The garden is a pure function of the repository at `ref`: file health is
+ * replayed from the commit history on every run rather than accumulated in the
+ * database, so a clean checkout and an incremental run produce the same image.
+ *
+ * @param {string} repoRoot
+ * @param {Object} [options]
+ * @param {string} [options.ref] Commit-ish to grow the garden at. Default 'HEAD'.
+ * @param {number} [options.historyLimit] Commits to replay. Defaults to config.
+ * @param {string} [options.layout] 'cluster', 'ring' or 'wedge'. Defaults to config.
+ * @param {boolean} [options.debug]
  */
-export async function generateGarden(repoRoot, fromCommit, toCommit, debug = false) {
+export async function generateGarden(repoRoot, options = {}) {
+  const { ref = 'HEAD', debug = false } = options;
   logger.setDebug(debug);
   logger.time('total');
 
-  logger.time('db');
   const db = openDb(repoRoot);
-  logger.timeEnd('db');
 
   try {
     logger.time('config');
     const { config, extensionToBiome, biomeColors, baseColor, configChanged, currentConfigHash, currentColormapHash } = loadConfig(repoRoot, db);
     const { gridW, gridH, PATCH_SIZE } = deriveGridConstants(config);
+    const historyLimit = options.historyLimit || config.history_limit;
     logger.timeEnd('config');
 
     logger.time('scan');
     const scannedFiles = await scanFiles(repoRoot, extensionToBiome, config.static_paths);
     logger.timeEnd('scan');
 
-    logger.time('sync-files');
-    syncFiles(db, scannedFiles, config.max_score);
-    logger.timeEnd('sync-files');
+    logger.time('history');
+    const { commits, baseSha } = await getCommitHistory(repoRoot, ref, historyLimit);
+    const baselinePaths = await getTreeFiles(repoRoot, baseSha);
+    const currentPaths = new Set(scannedFiles.map(f => f.path));
+    const health = replayHealth(currentPaths, commits, baselinePaths, config.max_score, historyLimit);
+    logger.log(`Replayed ${commits.length} commits over ${currentPaths.size} files`);
+    logger.timeEnd('history');
 
-    logger.time('health');
-    if (fromCommit && toCommit && fromCommit !== 'null' && fromCommit !== '') {
-      const diffStats = await getDiffStats(repoRoot, fromCommit, toCommit);
-      applyHealthDeltas(db, diffStats, config.max_score);
-      applyPassiveDeterioration(db, diffStats);
-    } else {
-      applyPassiveDeterioration(db, {});
-    }
-    logger.timeEnd('health');
+    logger.time('sync-files');
+    syncFiles(db, scannedFiles, health);
+    logger.timeEnd('sync-files');
 
     logger.time('seeds');
     const biomes = Object.keys(biomeColors);
@@ -60,7 +65,7 @@ export async function generateGarden(repoRoot, fromCommit, toCommit, debug = fal
     logger.timeEnd('voronoi');
 
     logger.time('assign');
-    fullAssignment(db, biomePatches, seeds);
+    fullAssignment(db, biomePatches, seeds, options.layout || config.layout);
     logger.timeEnd('assign');
 
     logger.time('render');
@@ -68,38 +73,42 @@ export async function generateGarden(repoRoot, fromCommit, toCommit, debug = fal
     await renderHtml(db, config, biomeColors, baseColor, gridW, gridH, PATCH_SIZE, repoRoot, debug);
     logger.timeEnd('render');
 
-    setMeta(db, 'last_run_commit', toCommit || 'HEAD');
-    if (configChanged || getMeta(db, 'config_hash') === null) {
+    setMeta(db, 'last_run_ref', commits.length > 0 ? commits[commits.length - 1].sha : ref);
+    setMeta(db, 'history_limit', historyLimit);
+    if (configChanged) {
       setMeta(db, 'config_hash', currentConfigHash);
-      setMeta(db, 'colormap_hash', currentColormapHash);
+      setMeta(db, 'default_config_hash', currentColormapHash);
     }
 
     logger.timeEnd('total');
   } finally {
     db.pragma('optimize');
-    db.close();
+    closeDb(db);
   }
 }
 
 /**
- * Synchronize scanned files with the database.
+ * Write the scanned tree and its replayed health into the database,
+ * dropping files that no longer exist.
  * @param {Database} db 
  * @param {Array} scannedFiles 
- * @param {number} maxScore 
+ * @param {Map<string, Object>} health Replayed health, keyed by path
  */
-function syncFiles(db, scannedFiles, maxScore) {
+function syncFiles(db, scannedFiles, health) {
   const existingFiles = db.prepare('SELECT path FROM files').all().map(f => f.path);
-  const existingPathsSet = new Set(existingFiles);
   const scannedPathsSet = new Set(scannedFiles.map(f => f.path));
 
   db.transaction(() => {
     for (const file of scannedFiles) {
+      const stats = health.get(file.path) || { health: 0, lastTouched: 0, commits: 0 };
       upsertFile(db, {
         path: file.path,
         biome: file.biome,
         line_count: file.lineCount,
-        health: maxScore,
-        last_merge: Math.floor(Date.now() / 1000)
+        health: stats.health,
+        last_merge: stats.lastTouched,
+        complexity: file.complexity,
+        commit_count: stats.commits
       });
     }
 

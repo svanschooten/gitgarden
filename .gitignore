@@ -148,6 +148,6 @@ test-results.xml
 garden.png
 
 .git-garden-tool/
-.gitgarden/state.db
+.gitgarden/state.db*
 .gitgarden/garden.png
 .gitgarden/garden.html

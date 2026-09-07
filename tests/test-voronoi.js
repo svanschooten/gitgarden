@@ -4,8 +4,9 @@ import { openDb, upsertFile } from '../src/db.js';
 import { initBiomeSeeds, computeSeedWeights, computeVoronoiMap, extractBiomePatches } from '../src/voronoi.js';
 import fs from 'fs';
 import path from 'path';
+import os from 'node:os';
 
-const testRepoRoot = path.join(process.cwd(), 'test-repo-voronoi');
+const testRepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'test-repo-voronoi-'));
 
 test('Voronoi biome map logic', async (t) => {
   if (fs.existsSync(testRepoRoot)) fs.rmSync(testRepoRoot, { recursive: true });

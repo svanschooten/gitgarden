@@ -28,7 +28,8 @@ jobs:
       - name: Checkout caller repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          # Health is replayed from the commit history, so the full log is needed.
+          fetch-depth: 0
 
       - name: Checkout Git Garden tool
         uses: actions/checkout@v4
@@ -44,22 +45,12 @@ jobs:
 
       - name: Install dependencies
         working-directory: .git-garden-tool
-        run: npm install
-
-      - name: Determine commit range
-        id: commits
-        run: |
-          FROM=$(git rev-parse HEAD~1 || echo "")
-          TO=$(git rev-parse HEAD)
-          echo "from=$FROM" >> $GITHUB_OUTPUT
-          echo "to=$TO" >> $GITHUB_OUTPUT
+        run: npm ci
 
       - name: Generate garden
         run: |
           mkdir -p docs
-          node .git-garden-tool/cli.js generate \
-            --from "${{ steps.commits.outputs.from }}" \
-            --to "${{ steps.commits.outputs.to }}"
+          node .git-garden-tool/cli.js generate
 
       - name: Publish Garden
         uses: JamesIves/github-pages-deploy-action@v4

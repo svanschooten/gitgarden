@@ -23,6 +23,8 @@ export function loadConfig(repoRoot, db) {
     height: 512,
     max_score: 200,
     min_distance: 35,
+    history_limit: 100,
+    layout: 'cluster',
     static_paths: [],
     plant_map: {
       plants: {},
@@ -44,6 +46,8 @@ export function loadConfig(repoRoot, db) {
   if (config.height < 10) config.height = 10;
   if (config.max_score < 10) config.max_score = 10;
   if (config.min_distance < 1) config.min_distance = 1;
+  if (!config.history_limit || config.history_limit < 1) config.history_limit = 100;
+  if (!['cluster', 'ring', 'wedge'].includes(config.layout)) config.layout = 'cluster';
 
   const extensionToBiome = {};
   const biomeColors = {};
@@ -71,7 +75,7 @@ export function loadConfig(repoRoot, db) {
   const defaultConfigHash = crypto.createHash('sha256').update(defaultConfigContent).digest('hex');
 
   const oldUserConfigHash = getMeta(db, 'config_hash');
-  const oldDefaultConfigHash = getMeta(db, 'colormap_hash');
+  const oldDefaultConfigHash = getMeta(db, 'default_config_hash');
 
   const configChanged = userConfigHash !== oldUserConfigHash || defaultConfigHash !== oldDefaultConfigHash;
 

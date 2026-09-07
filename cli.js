@@ -20,7 +20,9 @@ function showHelp() {
     console.log('  git-garden install -c | --configure          Install Git Garden and customize the configuration');
     console.log('  git-garden install --debug                   Enable debug logging and install Git Garden');
     console.log('  git-garden generate                          Generate the garden image');
-    console.log('  git-garden generate --from <sha> --to <sha>  Generate between specific commits');
+    console.log('  git-garden generate --at <ref>               Grow the garden as of a specific commit');
+    console.log('  git-garden generate --history <n>            Replay n commits of history (default 100)');
+    console.log('  git-garden generate --layout <name>          Patch layout: cluster, ring or wedge');
     console.log('  git-garden generate --debug                  Enable debug logging and HTML controls');
     console.log('  git-garden badge                             Add or update Git Garden badge in README.md');
     console.log('  git-garden remove                            Remove Git Garden workflow');
@@ -171,7 +173,8 @@ jobs:
 
 function updateGitignore(repoRoot) {
     const gitignoreFile = path.join(repoRoot, '.gitignore');
-    const ignoreEntries = ['garden.png', '.git-garden-tool/', '.gitgarden/state.db', '.gitgarden/garden.png', '.gitgarden/garden.html'];
+    // state.db* also covers the -wal and -shm files SQLite creates in WAL mode.
+    const ignoreEntries = ['garden.png', '.git-garden-tool/', '.gitgarden/state.db*', '.gitgarden/garden.png', '.gitgarden/garden.html'];
     
     if (fs.existsSync(gitignoreFile)) {
         let lines = fs.readFileSync(gitignoreFile, 'utf8').split(/\r?\n/);
@@ -193,7 +196,7 @@ function updateGitignore(repoRoot) {
             }
         }
         if (updated) {
-            fs.writeFileSync(gitignoreFile, lines.join('\n'));
+            fs.writeFileSync(gitignoreFile, lines.join('\n').replace(/\n*$/, '\n'));
             logger.info('✓ .gitignore updated');
         }
     } else {
@@ -203,13 +206,29 @@ function updateGitignore(repoRoot) {
 }
 
 async function handleGenerate(args) {
-    let fromCommit, toCommit, debug = false;
+    let ref, historyLimit, layout, debug = false;
     for (let i = 0; i < args.length; i++) {
-        if (args[i] === '--from') fromCommit = args[++i];
-        else if (args[i] === '--to') toCommit = args[++i];
+        if (args[i] === '--at' || args[i] === '--to') ref = args[++i];
+        // Health is replayed from git history, so there is no longer a commit
+        // range to generate "between"; --from is accepted and ignored so that
+        // older installed workflows keep working.
+        else if (args[i] === '--from') i++;
+        else if (args[i] === '--history') historyLimit = parseInt(args[++i], 10);
+        else if (args[i] === '--layout') layout = args[++i];
         else if (args[i] === '--debug') debug = true;
     }
-    await generateGarden(process.cwd(), fromCommit, toCommit || 'HEAD', debug);
+
+    if (historyLimit !== undefined && (!Number.isFinite(historyLimit) || historyLimit < 1)) {
+        logger.error('Error: --history must be a positive number of commits');
+        process.exit(1);
+    }
+
+    if (layout !== undefined && !['cluster', 'ring', 'wedge'].includes(layout)) {
+        logger.error(`Error: --layout must be one of cluster, ring, wedge (got "${layout}")`);
+        process.exit(1);
+    }
+
+    await generateGarden(process.cwd(), { ref: ref || 'HEAD', historyLimit, layout, debug });
     await logGitHubPagesInstructions();
 }
 
@@ -243,12 +262,11 @@ async function handleClearState() {
 
     if (fs.existsSync(stateDir)) {
         // We keep config.yaml but remove state.db
-        const dbFile = path.join(stateDir, 'state.db');
-        const gardenPngInDir = path.join(stateDir, 'garden.png');
-        const gardenHtmlInDir = path.join(stateDir, 'garden.html');
-        if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile);
-        if (fs.existsSync(gardenPngInDir)) fs.unlinkSync(gardenPngInDir);
-        if (fs.existsSync(gardenHtmlInDir)) fs.unlinkSync(gardenHtmlInDir);
+        const stale = ['state.db', 'state.db-wal', 'state.db-shm', 'garden.png', 'garden.html'];
+        for (const name of stale) {
+            const file = path.join(stateDir, name);
+            if (fs.existsSync(file)) fs.unlinkSync(file);
+        }
         logger.info('✓ Cleared .gitgarden state');
     }
     if (fs.existsSync(gardenPng)) {

@@ -4,8 +4,9 @@ import { openDb, upsertFile } from '../src/db.js';
 import { spiralSort, fullAssignment } from '../src/assign.js';
 import fs from 'fs';
 import path from 'path';
+import os from 'node:os';
 
-const testRepoRoot = path.join(process.cwd(), 'test-repo-assign');
+const testRepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'test-repo-assign-'));
 
 test('File-to-patch assignment', async (t) => {
   if (fs.existsSync(testRepoRoot)) fs.rmSync(testRepoRoot, { recursive: true });

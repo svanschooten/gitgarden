@@ -2,15 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'fs';
 import path from 'path';
+import os from 'node:os';
 import { execSync } from 'child_process';
 
+const repoRoot = path.join(import.meta.dirname, '..');
+const cliPath = path.join(repoRoot, 'cli.js');
+
 test('cli install and remove', async () => {
-    const testRepo = path.join(process.cwd(), 'test-repo-cli');
-    if (fs.existsSync(testRepo)) fs.rmSync(testRepo, { recursive: true, force: true });
-    fs.mkdirSync(testRepo);
-    
-    const cliPath = path.join(process.cwd(), 'cli.js');
-    
+    const testRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'test-repo-cli-'));
+
     try {
         execSync(`node ${cliPath} install`, { cwd: testRepo, stdio: 'pipe' });
         assert.fail('Should have failed because not a git repo');
@@ -40,13 +40,9 @@ test('cli install and remove', async () => {
 });
 
 test('cli install with --branch', async () => {
-    const testRepo = path.join(process.cwd(), 'test-repo-branch');
-    if (fs.existsSync(testRepo)) fs.rmSync(testRepo, { recursive: true, force: true });
-    fs.mkdirSync(testRepo);
+    const testRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'test-repo-branch-'));
     execSync('git init', { cwd: testRepo });
-    
-    const cliPath = path.join(process.cwd(), 'cli.js');
-    
+
     fs.mkdirSync(path.join(testRepo, '.github', 'workflows'), { recursive: true });
     
     execSync(`node ${cliPath} install --branch develop`, { cwd: testRepo });

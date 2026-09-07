@@ -46,6 +46,15 @@
       height: 100%;
       box-sizing: border-box;
     }
+    /* File borders: each edge is a separate property, so the classes combine. */
+    .e1 { border-top: 1px solid rgba(0,0,0,0.34); }
+    .e2 { border-right: 1px solid rgba(0,0,0,0.34); }
+    .e4 { border-bottom: 1px solid rgba(0,0,0,0.34); }
+    .e8 { border-left: 1px solid rgba(0,0,0,0.34); }
+    /* Indentation complexity: denser stipple means more deeply nested code. */
+    .t1 { background-image: radial-gradient(rgba(0,0,0,0.20) 30%, transparent 32%); background-size: 4px 4px; }
+    .t2 { background-image: radial-gradient(rgba(0,0,0,0.28) 34%, transparent 36%); background-size: 3px 3px; }
+    .t3 { background-image: radial-gradient(rgba(0,0,0,0.36) 38%, transparent 40%); background-size: 2px 2px; }
     .sidebar {
       width: 300px;
       display: flex;
@@ -61,14 +70,25 @@
     .panel h3 { margin-top: 0; }
     .legend-item {
       display: flex;
-      align-items: center;
-      margin-bottom: 8px;
+      align-items: flex-start;
+      margin-bottom: 10px;
     }
     .color-box {
       width: 16px;
       height: 16px;
       border-radius: 3px;
       margin-right: 8px;
+      flex: none;
+    }
+    .legend-item small { color: #8b949e; }
+    .key { font-size: 12px; color: #8b949e; line-height: 1.6; }
+    .key .swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      margin-right: 4px;
+      vertical-align: -1px;
     }
     #tooltip {
       position: fixed;
@@ -78,10 +98,13 @@
       padding: 8px 12px;
       border-radius: 4px;
       font-size: 12px;
+      line-height: 1.5;
       z-index: 1000;
       display: none;
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
+    #tooltip .name { font-weight: 600; word-break: break-all; }
+    #tooltip .meta { color: #8b949e; }
     .seed {
       position: absolute;
       width: 8px;
@@ -127,6 +150,18 @@
         <h3>Biomes</h3>
         <div id="legend"></div>
       </div>
+
+      <div class="panel">
+        <h3>Reading the garden</h3>
+        <div class="key">
+          <div><span class="swatch" style="background:#2ed42e"></span><strong>Colour</strong> — the biome a file's extension belongs to.</div>
+          <div><span class="swatch" style="background:#6e3d00"></span><strong>Withering</strong> — low health; the file has been left alone.</div>
+          <div><strong>Shade</strong> — each file gets its own tint, so neighbours stay distinct.</div>
+          <div><strong>Speckle</strong> — indentation complexity; denser means more deeply nested.</div>
+          <div><strong>Outline</strong> — the boundary between two files.</div>
+          <div><strong>Area</strong> — line count, within a biome sized by file count.</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -145,7 +180,6 @@
       const patchSize = {{PATCH_SIZE}};
 
       const grid = document.getElementById('garden-grid');
-      const wrapper = document.querySelector('.garden-wrapper');
       const legend = document.getElementById('legend');
       const tooltip = document.getElementById('tooltip');
       const seedCheckbox = document.getElementById('show-seeds');
@@ -155,11 +189,19 @@
       grid.style.gridTemplateRows = `repeat(${height / patchSize}, 1fr)`;
       grid.style.aspectRatio = `${width} / ${height}`;
 
-      // 2. Render Grid
+      // 2. Render Grid.
+      // Colours, borders and texture come from the generator so the page and
+      // the PNG agree; only the layout is left to CSS Grid.
       let gridHtml = '';
       for (let i = 0; i < patches.length; i++) {
         const p = patches[i];
-        gridHtml += `<div class="patch" data-idx="${i}" style="background-color: ${p.fill}; grid-column: ${Math.floor(p.x / patchSize) + 1}; grid-row: ${Math.floor(p.y / patchSize) + 1};"></div>`;
+        let cls = 'patch';
+        if (p.edges & 1) cls += ' e1';
+        if (p.edges & 2) cls += ' e2';
+        if (p.edges & 4) cls += ' e4';
+        if (p.edges & 8) cls += ' e8';
+        if (p.texture) cls += ' t' + p.texture;
+        gridHtml += `<div class="${cls}" data-idx="${i}" style="background-color: ${p.fill}; grid-column: ${Math.floor(p.x / patchSize) + 1}; grid-row: ${Math.floor(p.y / patchSize) + 1};"></div>`;
       }
       grid.innerHTML = gridHtml;
 
@@ -175,49 +217,81 @@
         grid.appendChild(div);
       });
 
-      // 3. Render Legend
-      let legendHtml = '';
+      // 3. Render Legend.
+      // Built with DOM nodes rather than innerHTML: biome names come from the
+      // user's config file and are not trusted markup.
       for (const b of biomes) {
-        legendHtml += `
-          <div class="legend-item">
-            <span class="color-box" style="background-color: ${b.color}"></span>
-            <span class="label">
-              <strong>${b.name}</strong>
-              ${b.extensions ? `<span> (${b.extensions})</span>` : ''}
-              <br><small>${b.fileCount} files (${b.patchCount} patches)</small>
-            </span>
-          </div>
-        `;
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+
+        const box = document.createElement('span');
+        box.className = 'color-box';
+        box.style.backgroundColor = b.color;
+        item.appendChild(box);
+
+        const label = document.createElement('span');
+        const name = document.createElement('strong');
+        name.textContent = b.name;
+        label.appendChild(name);
+        if (b.extensions) {
+          label.appendChild(document.createTextNode(` (${b.extensions})`));
+        }
+        label.appendChild(document.createElement('br'));
+        const stats = document.createElement('small');
+        stats.textContent =
+          `${b.fileCount} files · health ${b.avgHealth}/${maxScore} · complexity ${b.avgComplexity}`;
+        label.appendChild(stats);
+
+        item.appendChild(label);
+        legend.appendChild(item);
       }
-      legend.innerHTML = legendHtml;
 
       // 4. Interactivity
+      const tipName = document.createElement('div');
+      tipName.className = 'name';
+      const tipMeta = document.createElement('div');
+      tipMeta.className = 'meta';
+      tooltip.appendChild(tipName);
+      tooltip.appendChild(tipMeta);
+
+      function formatAge(timestamp) {
+        if (!timestamp) return 'not in the replayed history';
+        const days = Math.floor((Date.now() / 1000 - timestamp) / 86400);
+        if (days <= 0) return 'touched today';
+        if (days === 1) return 'touched yesterday';
+        return `touched ${days} days ago`;
+      }
+
       grid.addEventListener('mousemove', function(e) {
-        const target = e.target;
-        const idx = target.getAttribute('data-idx');
-        
-        // Tooltip Position
+        const idx = e.target.getAttribute && e.target.getAttribute('data-idx');
+
         tooltip.style.left = (e.clientX + 15) + 'px';
         tooltip.style.top = (e.clientY + 15) + 'px';
 
-        if (idx !== null) {
-          const patch = patches[idx];
-          tooltip.style.display = 'block';
-
-          const files = (patch.fileIds || []).map(id => fileMap[id]);
-          
-          // Update Tooltip
-          if (files.length === 1) {
-            const f = files[0];
-            tooltip.innerHTML = `<strong>${f.path.split('/').pop()}</strong><br>Biome: ${f.biome}<br>Health: ${f.health}/${maxScore}`;
-          } else if (files.length > 1) {
-            tooltip.innerHTML = `<strong>${files.length} Files</strong><br>Biome: ${files[0].biome}`;
-          } else {
-            tooltip.style.display = 'none';
-          }
-        } else {
+        if (idx === null || idx === undefined) {
           tooltip.style.display = 'none';
+          return;
         }
+
+        const patch = patches[idx];
+        const files = (patch.fileIds || []).map(id => fileMap[id]).filter(Boolean);
+        if (files.length === 0) {
+          tooltip.style.display = 'none';
+          return;
+        }
+
+        // textContent, not innerHTML: these strings are repository file paths.
+        if (files.length === 1) {
+          const f = files[0];
+          tipName.textContent = f.path;
+          tipMeta.textContent =
+            `${f.biome} · health ${f.health}/${maxScore} · ${f.lines} lines · ` +
+            `complexity ${f.complexity} · ${f.commits} commits · ${formatAge(f.lastTouched)}`;
+        } else {
+          tipName.textContent = `${files.length} files`;
+          tipMeta.textContent = `${files[0].biome} · ${files.map(f => f.path).join(', ')}`;
+        }
+        tooltip.style.display = 'block';
       });
 
       grid.addEventListener('mouseleave', function() {

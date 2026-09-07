@@ -2,8 +2,48 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
+/** Databases opened in this process, closed once on shutdown. */
+const openHandles = new Set();
+let shutdownHooked = false;
+
+/**
+ * Register process-wide shutdown handling exactly once, however many
+ * databases the process opens.
+ */
+function installShutdownHook() {
+  if (shutdownHooked) return;
+  shutdownHooked = true;
+
+  process.on('exit', () => {
+    for (const db of openHandles) {
+      try { db.close(); } catch { /* already closed */ }
+    }
+  });
+  process.on('SIGHUP', () => process.exit(128 + 1));
+  process.on('SIGINT', () => process.exit(128 + 2));
+  process.on('SIGTERM', () => process.exit(128 + 15));
+}
+
+/**
+ * Add a column to an existing table if it is missing.
+ * @param {Database} db
+ * @param {string} table
+ * @param {string} column
+ * @param {string} definition
+ */
+function addColumnIfMissing(db, table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!columns.some(c => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
 /**
  * Open (or create) the SQLite database and initialize the schema.
+ *
+ * The database is a working store, not a source of truth: health is replayed
+ * from git on every run, so deleting it only costs a little time.
+ *
  * @param {string} repoRoot 
  * @returns {Database}
  */
@@ -38,7 +78,9 @@ export function openDb(repoRoot) {
       biome       TEXT NOT NULL,
       line_count  INTEGER NOT NULL DEFAULT 0,
       health      INTEGER NOT NULL DEFAULT 100,
-      last_merge  INTEGER NOT NULL DEFAULT 0
+      last_merge  INTEGER NOT NULL DEFAULT 0,
+      complexity  REAL NOT NULL DEFAULT 0,
+      commit_count INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS file_patches (
@@ -52,12 +94,23 @@ export function openDb(repoRoot) {
     CREATE INDEX IF NOT EXISTS idx_files_biome ON files(biome);
   `);
 
-  process.on('exit', () => db.close());
-  process.on('SIGHUP', () => process.exit(128 + 1));
-  process.on('SIGINT', () => process.exit(128 + 2));
-  process.on('SIGTERM', () => process.exit(128 + 15));
+  // Databases created before complexity was tracked.
+  addColumnIfMissing(db, 'files', 'complexity', 'REAL NOT NULL DEFAULT 0');
+  addColumnIfMissing(db, 'files', 'commit_count', 'INTEGER NOT NULL DEFAULT 0');
+
+  openHandles.add(db);
+  installShutdownHook();
 
   return db;
+}
+
+/**
+ * Close a database and stop tracking it for shutdown.
+ * @param {Database} db
+ */
+export function closeDb(db) {
+  openHandles.delete(db);
+  try { db.close(); } catch { /* already closed */ }
 }
 
 /**
@@ -87,15 +140,19 @@ export function setMeta(db, key, value) {
  * @param {Object} fileData 
  * @returns {number} The file ID
  */
-export function upsertFile(db, { path, biome, line_count, health, last_merge }) {
+export function upsertFile(db, { path, biome, line_count, health, last_merge, complexity = 0, commit_count = 0 }) {
   const info = db.prepare(`
-    INSERT INTO files (path, biome, line_count, health, last_merge)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO files (path, biome, line_count, health, last_merge, complexity, commit_count)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(path) DO UPDATE SET
       biome = EXCLUDED.biome,
-      line_count = EXCLUDED.line_count
+      line_count = EXCLUDED.line_count,
+      health = EXCLUDED.health,
+      last_merge = EXCLUDED.last_merge,
+      complexity = EXCLUDED.complexity,
+      commit_count = EXCLUDED.commit_count
     RETURNING id
-  `).get(path, biome, line_count, health, last_merge);
+  `).get(path, biome, line_count, health, last_merge, complexity, commit_count);
   return info.id;
 }
 
@@ -113,9 +170,7 @@ export function deleteFile(db, path) {
  * @param {Database} db 
  */
 export function clearAssignments(db) {
-  db.transaction(() => {
-    db.prepare('DELETE FROM file_patches').run();
-  }).immediate();
+  db.prepare('DELETE FROM file_patches').run();
 }
 
 /**
@@ -125,11 +180,10 @@ export function clearAssignments(db) {
  */
 export function bulkInsertPatches(db, patches) {
   const insert = db.prepare('INSERT INTO file_patches (file_id, px, py) VALUES (?, ?, ?)');
-  const transaction = db.transaction((patches) => {
-    for (const p of patches) {
+  const transaction = db.transaction((rows) => {
+    for (const p of rows) {
       insert.run(p.fileId, p.px, p.py);
     }
   });
-  transaction.immediate(patches);
+  transaction(patches);
 }
-

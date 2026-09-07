@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { openDb, getMeta, setMeta, upsertFile, deleteFile, clearAssignments, bulkInsertPatches } from '../src/db.js';
 
-const testRepoRoot = path.join(process.cwd(), 'test-repo-db');
+const testRepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'test-repo-db-'));
 
 test('Database operations', async (t) => {
   if (fs.existsSync(testRepoRoot)) {
