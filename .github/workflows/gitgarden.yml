@@ -26,13 +26,13 @@ jobs:
 
     steps:
       - name: Checkout caller repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Health is replayed from the commit history, so the full log is needed.
           fetch-depth: 0
 
       - name: Checkout Git Garden tool
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: svanschooten/gitgarden
           path: .git-garden-tool
