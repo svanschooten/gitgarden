@@ -14,9 +14,9 @@
   "license": "Apache-2.0",
   "type": "module",
   "dependencies": {
-    "better-sqlite3": "^12.9.0",
+    "better-sqlite3": "^13.0.3",
     "indent-complexity": "^0.1.1",
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^5.4.1",
     "pngjs": "^7.0.0"
   },
   "engines": {
