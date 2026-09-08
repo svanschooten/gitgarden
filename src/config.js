@@ -24,7 +24,7 @@ export function loadConfig(repoRoot, db) {
     max_score: 200,
     min_distance: 35,
     history_limit: 100,
-    layout: 'cluster',
+    layout: 'grow',
     static_paths: [],
     plant_map: {
       plants: {},
@@ -47,7 +47,7 @@ export function loadConfig(repoRoot, db) {
   if (config.max_score < 10) config.max_score = 10;
   if (config.min_distance < 1) config.min_distance = 1;
   if (!config.history_limit || config.history_limit < 1) config.history_limit = 100;
-  if (!['cluster', 'ring', 'wedge'].includes(config.layout)) config.layout = 'cluster';
+  if (!['hilbert', 'grow', 'ring', 'wedge'].includes(config.layout)) config.layout = 'grow';
 
   const extensionToBiome = {};
   const biomeColors = {};

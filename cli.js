@@ -22,7 +22,7 @@ function showHelp() {
     console.log('  git-garden generate                          Generate the garden image');
     console.log('  git-garden generate --at <ref>               Grow the garden as of a specific commit');
     console.log('  git-garden generate --history <n>            Replay n commits of history (default 100)');
-    console.log('  git-garden generate --layout <name>          Patch layout: cluster, ring or wedge');
+    console.log('  git-garden generate --layout <name>          Patch layout: grow, hilbert, ring or wedge');
     console.log('  git-garden generate --debug                  Enable debug logging and HTML controls');
     console.log('  git-garden badge                             Add or update Git Garden badge in README.md');
     console.log('  git-garden remove                            Remove Git Garden workflow');
@@ -223,8 +223,8 @@ async function handleGenerate(args) {
         process.exit(1);
     }
 
-    if (layout !== undefined && !['cluster', 'ring', 'wedge'].includes(layout)) {
-        logger.error(`Error: --layout must be one of cluster, ring, wedge (got "${layout}")`);
+    if (layout !== undefined && !['hilbert', 'grow', 'ring', 'wedge'].includes(layout)) {
+        logger.error(`Error: --layout must be one of hilbert, grow, ring, wedge (got "${layout}")`);
         process.exit(1);
     }
 

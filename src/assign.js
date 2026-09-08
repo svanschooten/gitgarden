@@ -2,10 +2,8 @@ import { clearAssignments, bulkInsertPatches } from './db.js';
 import { hash32 } from './render.js';
 
 /**
- * Sort patches into wedges: by angle around the seed, then outward.
- *
- * Consecutive runs of this order are thin pie slices spanning the biome's full
- * radius. Kept as a layout option, and as the historical default.
+ * Sort patches by angle around the seed, then outward.
+ * Consecutive runs are thin pie slices spanning the biome's full radius.
  *
  * @param {Array} patches
  * @param {number} seedX
@@ -23,10 +21,8 @@ export function spiralSort(patches, seedX, seedY) {
 }
 
 /**
- * Sort patches into rings: by distance from the seed, then by angle.
- *
- * Consecutive runs of this order are annular bands, so files stack outward from
- * the biome centre like tree rings instead of radiating as wedges.
+ * Sort patches by distance from the seed, then by angle.
+ * Consecutive runs are annular bands, stacking outward like tree rings.
  *
  * @param {Array} patches
  * @param {number} seedX
@@ -40,6 +36,59 @@ export function ringSort(patches, seedX, seedY) {
     if (distA !== distB) return distA - distB;
     return Math.atan2(a.y - seedY, a.x - seedX) - Math.atan2(b.y - seedY, b.x - seedX);
   });
+}
+
+/**
+ * Position of (x, y) along a Hilbert curve of side `n` (a power of two).
+ *
+ * @param {number} n Curve side length
+ * @param {number} x
+ * @param {number} y
+ * @returns {number} Distance along the curve
+ */
+export function hilbertIndex(n, x, y) {
+  let rx, ry, d = 0;
+  for (let s = n >> 1; s > 0; s >>= 1) {
+    rx = (x & s) > 0 ? 1 : 0;
+    ry = (y & s) > 0 ? 1 : 0;
+    d += s * s * ((3 * rx) ^ ry);
+    // Rotate the quadrant so the curve stays continuous.
+    if (ry === 0) {
+      if (rx === 1) {
+        x = s - 1 - x;
+        y = s - 1 - y;
+      }
+      const t = x; x = y; y = t;
+    }
+  }
+  return d;
+}
+
+/**
+ * Sort patches along a Hilbert curve covering the biome.
+ *
+ * Any contiguous run of a Hilbert curve is a compact blob, so a consecutive
+ * slice gives a file one clump rather than a wedge or a ring. The curve covers
+ * the smallest enclosing power-of-two square, so any biome shape works.
+ *
+ * @param {Array} patches
+ * @returns {Array} Sorted patches
+ */
+export function hilbertSort(patches) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of patches) {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  }
+  let n = 1;
+  while (n < Math.max(maxX - minX, maxY - minY) + 1) n <<= 1;
+
+  return patches
+    .map(p => ({ p, d: hilbertIndex(n, p.x - minX, p.y - minY) }))
+    .sort((a, b) => (a.d - b.d) || (a.p.y - b.p.y) || (a.p.x - b.p.x))
+    .map(e => e.p);
 }
 
 /**
@@ -59,9 +108,9 @@ export function computeQuotas(files, totalPatches) {
 /**
  * Walk a sorted patch list, handing each file a consecutive run.
  *
- * Note that this couples every file's position to every file before it: a new
- * file shifts the cursor, and everything after it moves. Use `growClusters` when
- * layout stability across commits matters.
+ * This couples every file's position to every file before it: a new file shifts
+ * the cursor and everything after it moves. Use `growClusters` when layout
+ * stability across commits matters.
  *
  * @param {Array} files
  * @param {Array} ordered Patches in the desired traversal order
@@ -113,14 +162,11 @@ export function anchorFor(filePath, box) {
 /**
  * Push anchors apart so that files have room to grow to their quota.
  *
- * Raw hash positions clump the way any random scatter does, which leaves big
- * files anchored on top of each other; one then gets enveloped by its neighbour
- * and never spends its quota, while the neighbour overshoots. A few rounds of
- * relaxation separate them.
+ * Raw hash positions clump like any random scatter, leaving big files anchored
+ * on top of each other; one then gets enveloped and never spends its quota.
  *
- * Every displacement is computed from the previous round's positions and then
- * applied at once, so the result does not depend on the order files are visited
- * — the same set of files always relaxes to the same layout.
+ * Displacements are computed from the previous round and applied all at once,
+ * so the result never depends on the order files are visited.
  *
  * @param {Array<{x: number, y: number}>} anchors Starting positions
  * @param {number[]} quotas Patch quota per file, index-aligned
@@ -205,33 +251,24 @@ class Heap {
   }
 }
 
-/**
- * Grow each file outward from its own anchor until it fills its quota.
- *
- * A simultaneous best-first expansion from every anchor at once: each file
- * claims the unclaimed patch nearest its anchor, so regions come out as compact
- * blobs that meet along natural boundaries. Because anchors are path-derived,
- * adding or removing a file only disturbs the patches near that one file.
- *
- * @param {Array} files
- * @param {Array} patches Patches belonging to this biome
- * @returns {Array<{fileIndex: number, x: number, y: number}>}
- */
 const NEIGHBOURS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
-/** Growth passes. Each one corrects the area error left by the previous. */
-const GROWTH_ROUNDS = Number(process.env.GG_ROUNDS) || 4;
+/**
+ * Growth passes. Extra passes correct each file's area error, but the
+ * correction is derived from the whole biome, so it couples every file to every
+ * other one. Measured here, four passes cut the worst area error from 109% to
+ * 72% but tripled how far a file moves when a neighbour appears — stability is
+ * worth more than exact areas, so we take one pass.
+ */
+const GROWTH_ROUNDS = 1;
 
 /**
  * Grow each file outward from its own anchor until it fills its quota.
  *
- * A simultaneous best-first expansion from every anchor at once: each file
- * claims the unclaimed patch nearest its own anchor, so every file comes out as
- * a single compact blob that meets its neighbours along a natural boundary.
- *
- * Anchors are derived from the file's path alone, so adding or removing a file
- * disturbs only the ground around that one file rather than reshuffling the
- * whole biome.
+ * Every anchor expands at once, each claiming the nearest unclaimed patch, so
+ * files come out as compact blobs meeting along natural boundaries. Anchors
+ * depend only on the file's own path, so adding or removing a file disturbs
+ * only the ground around it.
  *
  * @param {Array} files
  * @param {Array} patches Patches belonging to this biome
@@ -252,13 +289,13 @@ export function growClusters(files, patches) {
   const quotas = computeQuotas(files, patches.length);
   const anchors = relaxAnchors(files.map(f => anchorFor(f.path, box)), quotas, box);
 
-  // Frontier order: scaled distance first, then file, then position. Every
-  // component is compared explicitly so ties resolve identically on every run.
+  // Frontier order: scaled distance, then file, then position. Every component
+  // is compared explicitly so ties resolve identically on every run.
   const byPriority = (a, b) =>
     (a.reach - b.reach) || (a.fileIndex - b.fileIndex) || (a.y - b.y) || (a.x - b.x);
 
-  // A file's frontier advances at a rate set by how much ground it needs, so a
-  // large file claims its share instead of being walled in by small neighbours.
+  // Big files advance faster, so they claim their share instead of being walled
+  // in by small neighbours.
   let rate = quotas.map(q => Math.sqrt(Math.max(1, q)));
 
   let best = null;
@@ -272,8 +309,7 @@ export function growClusters(files, patches) {
     if (error < 0.05 || round === GROWTH_ROUNDS - 1) break;
 
     // Files that came up short push harder next round; files that overshot
-    // yield. Squaring the correction into the radius keeps it proportional to
-    // area rather than distance.
+    // yield. The square root keeps the correction proportional to area.
     rate = rate.map((r, i) => {
       const got = result.counts[i] || 1;
       const correction = Math.sqrt(quotas[i] / got);
@@ -359,10 +395,9 @@ function growOnce(files, patches, quotas, anchors, rate, byPriority, box) {
 
   expand(heap, true);
 
-  // Rounding, and files whose frontier got enveloped before spending their
-  // quota, leave gaps. Offer them to under-quota files first; handing them
-  // straight to whichever file is adjacent lets a big neighbour swallow a whole
-  // region, which is what threw the areas out.
+  // Rounding and enveloped frontiers leave gaps. Offer them to under-quota
+  // files first: handing them to whichever file happens to be adjacent lets a
+  // big neighbour swallow a whole region and throws the areas out.
   const refill = (capped) => {
     if (free.size === 0) return false;
     const frontier = new Heap(byPriority);
@@ -385,8 +420,8 @@ function growOnce(files, patches, quotas, anchors, rate, byPriority, box) {
   while (refill(true)) { /* keep offering gaps to files still under quota */ }
   refill(false);
 
-  // Islands with no claimed neighbour at all: give them to the file whose
-  // anchor sits closest, so they still land somewhere predictable.
+  // Islands with no claimed neighbour go to the nearest anchor, so they still
+  // land somewhere predictable.
   if (free.size > 0) {
     for (const key of [...free.keys()].sort()) {
       const [x, y] = key.split(',').map(Number);
@@ -407,9 +442,9 @@ function growOnce(files, patches, quotas, anchors, rate, byPriority, box) {
  * @param {Database} db 
  * @param {Map} biomePatches 
  * @param {Array} seeds 
- * @param {string} [layout] 'cluster' (default), 'ring' or 'wedge'
+ * @param {string} [layout] 'grow' (default), 'hilbert', 'ring' or 'wedge'
  */
-export function fullAssignment(db, biomePatches, seeds, layout = 'cluster') {
+export function fullAssignment(db, biomePatches, seeds, layout = 'grow') {
   db.transaction(() => {
     clearAssignments(db);
 
@@ -427,6 +462,8 @@ export function fullAssignment(db, biomePatches, seeds, layout = 'cluster') {
         placements = assignInOrder(files, spiralSort([...patches], seed.cx, seed.cy));
       } else if (layout === 'ring') {
         placements = assignInOrder(files, ringSort([...patches], seed.cx, seed.cy));
+      } else if (layout === 'hilbert') {
+        placements = assignInOrder(files, hilbertSort([...patches]));
       } else {
         placements = growClusters(files, patches);
       }

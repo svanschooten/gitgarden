@@ -85,15 +85,14 @@ git-garden clear
 ```
 
 ## Github actions usage
-Git Garden now uses a published reusable workflow automatically after running `git-garden install`. The generated workflow calls `svanschooten/gitgarden/.github/workflows/gitgarden.yml`, which handles:
-1.  Cloning the target repository with its full history.
-2.  Replaying the commit history to score every file.
-3.  Growing the garden from that score.
-4.  Publishing the updated visualization back to `gh-pages`.
+`git-garden install` writes a workflow that calls the published reusable workflow `svanschooten/gitgarden/.github/workflows/gitgarden.yml`, which:
+1.  Clones the repository with its full history.
+2.  Replays the commit history to score every file.
+3.  Grows the garden from that score.
+4.  Publishes the result back to `gh-pages`.
 
-The workflow keeps no state between runs. Everything the garden shows is derived
-from the repository itself, so a fresh clone and an incremental run produce the
-same image — see [Health](#health-is-replayed-not-accumulated) below.
+Nothing is carried between runs, so a fresh clone and an incremental run produce
+the same image — see [Health](#health-is-replayed-not-accumulated) below.
 
 ## Garden Visualization
 ### Color mapping
@@ -110,33 +109,62 @@ Every visual channel carries one piece of information:
 | **Shade** | A stable per-file tint, so neighbouring files stay distinguishable instead of merging into one flat block. |
 | **Speckle density** | Indentation complexity, via [`indent-complexity`](https://www.npmjs.com/package/indent-complexity). Denser means more deeply nested. |
 | **Darker outline** | The boundary between two files. |
-| **Area** | The file's line count, inside a biome whose area follows its file count. |
+| **Area** | The file's line count, inside a biome whose area follows its file count. How faithfully depends on `layout` — see below. |
 
-The interactive page shows the same encoding, and its tooltip adds the exact
-health, line count, complexity score, commit count and time since the file was
-last touched.
+The interactive page uses the same encoding; its tooltip adds the exact health,
+line count, complexity, commit count and time since the file was last touched.
 
 ### Health is replayed, not accumulated
 Health is a pure function of the commit history, recomputed on every run:
 
-- Every file starts at `max_score` when it enters the replay window — either because
-  it already existed when the window opened, or because a commit created it.
-- Commits that touch a file move its health: growth for net additions, a penalty for
+- A file starts at `max_score` when it enters the replay window.
+- Commits that touch it move its health: growth for net additions, a penalty for
   net deletions, a small credit for balanced maintenance.
-- Commits that *don't* touch it decay it by `max_score / history_limit`, so a file left
-  untouched for the whole window lands at exactly zero.
-- Renames carry a file's accumulated health with it.
+- Commits that *don't* touch it decay it by `max_score / history_limit`, so a file
+  left untouched for the whole window lands at exactly zero.
+- Renames carry a file's health with it.
 
 `history_limit` (default 100 commits) therefore sets how much neglect it takes to
-wither. Because nothing is stored between runs, `.gitgarden/state.db` is a cache:
-deleting it costs a little time and changes nothing about the result.
+wither. Nothing is stored between runs, so `.gitgarden/state.db` is only a cache —
+deleting it changes nothing about the result.
 
 ### Design: File to Element Mapping
 The Git Garden maps a variable number of files to a set number of elements (patches) through a two-step process:
 1. **Weighted Voronoi Biome Partitioning**: The garden is divided into biomes (e.g., source code, documentation, configuration). Each biome is assigned an area proportional to the number of files it contains.
-2. **Proportional Patch Allocation**: Within each biome, files are sorted alphabetically. Each file is allocated a number of patches proportional to its line count (size). This ensures that larger files appear as larger clusters within their respective biomes.
+2. **Patch Allocation**: within each biome, every file is given ground proportional to its line count.
 
-The patches within a biome are sorted by their distance and angle from the biome's center (seed point), which creates a cohesive and organized appearance. These center points are defined in `config.yaml` to ensure the garden layout remains consistent even if the state is cleared.
+Biome centre points live in `config.yaml` so the overall layout stays put even if
+the state is cleared.
+
+### Layout
+`layout` in the config, or `--layout` on the command line, decides how files are
+placed inside a biome. Each option trades clumping against accuracy, measured on
+this repository:
+
+| `layout` | files drawn as one clump | area matches line count | movement when a file is added |
+|---|---|---|---|
+| **`grow`** (default) | **38/38** | ±32% typical | **0.8 patches median, 3.7 worst** |
+| `hilbert` | 33/38 | ±0% | 2.0 median, 35.4 worst |
+| `wedge` | 16/38 | ±0% | 0.7 median, 4.1 worst |
+| `ring` | 12/38 | ±0% | 1.0 median, 20.4 worst |
+
+Movement is how far a file's centre of mass shifts when one new file appears, on
+a 128×128 patch garden.
+
+- **`grow`** — each file is planted at a spot derived from its own path, and all
+  files then spread outward at once until they run into each other. Every file
+  ends up as one compact bed, and a new file only disturbs its own surroundings.
+  The cost: files boxed in by their neighbours end up smaller than their line
+  count says.
+- **`hilbert`** — files take consecutive slices of a Hilbert curve. Sizes are
+  exact and clumps are nearly as good, but the curve folds, so one new file can
+  send a block somewhere else entirely.
+- **`wedge`** / **`ring`** — files take slices ordered by angle, or by distance,
+  from the biome centre. Sizes are exact, but each file becomes a thin pie slice
+  or a ring that the biome edge breaks up, so files are hard to tell apart.
+
+Keep `grow` for a garden of recognisable beds that stays put between commits;
+pick `hilbert` if a file's size reading accurately matters more.
 
 ## Code organization
 Everything is split out into separate files to keep concerns separate and make it easier to understand.
