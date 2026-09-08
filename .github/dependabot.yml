@@ -25,7 +25,6 @@ updates:
         update-types:
           - "major"
         dependency-type: "production"
-    target-branch: "master"
     labels:
       - "dependencies"
       - "dependabot"
