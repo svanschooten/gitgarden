@@ -1,0 +1,8 @@
+# This is a unix project: LF everywhere, in the repository and in the working
+# tree. Without this, git's core.autocrlf setting decides per machine and the
+# repository ends up with a mix.
+* text=auto eol=lf
+
+# Anything the garden itself writes, should it ever be committed.
+*.png binary
+*.ico binary

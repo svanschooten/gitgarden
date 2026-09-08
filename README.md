@@ -111,8 +111,23 @@ Every visual channel carries one piece of information:
 | **Darker outline** | The boundary between two files. |
 | **Area** | The file's line count, inside a biome whose area follows its file count. How faithfully depends on `layout` — see below. |
 
-The interactive page uses the same encoding; its tooltip adds the exact health,
-line count, complexity, commit count and time since the file was last touched.
+Both views paint the same values: colour, texture and the border rule all come
+from [src/encoding.js](./src/encoding.js), so the PNG and the page cannot drift
+apart.
+
+### The interactive page
+`garden.html` draws the map to a canvas, which keeps it quick to explore even
+though a garden is ~16,000 patches:
+
+- **Zoom** with the slider, the scroll wheel, or the +/− buttons; **drag to pan**,
+  and **Fit** returns to the whole garden. Only the visible patches are ever
+  drawn, so zooming in gets *cheaper*, not slower.
+- **Hover** for a tooltip with exact health, line count, complexity, commit count
+  and time since the file was last touched. The sidebar picks what else hovering
+  does: nothing, outline the file's whole bed, or spotlight it by dimming
+  everything else.
+- **Search** any path fragment to light up matching files and dim the rest;
+  click a result to centre the map on it.
 
 ### Health is replayed, not accumulated
 Health is a pure function of the commit history, recomputed on every run:
@@ -175,10 +190,11 @@ Everything is split out into separate files to keep concerns separate and make i
 - [src/scan.js](./src/scan.js): Lists tracked files and measures size and complexity.
 - [src/git.js](./src/git.js): Reads commit history and repository metadata.
 - [src/health.js](./src/health.js): Replays file health across the commit window.
+- [src/encoding.js](./src/encoding.js): The visual encoding — colour, texture and borders — shared by both renderers.
 - [src/voronoi.js](./src/voronoi.js): Weighted Voronoi biome partitioning.
 - [src/assign.js](./src/assign.js): Assigns files to patches within a biome.
-- [src/render.js](./src/render.js): Writes the PNG, including the visual encoding above.
-- [src/html.js](./src/html.js): Writes the interactive page from [src/template.html](./src/template.html).
+- [src/render.js](./src/render.js): Writes the PNG.
+- [src/html.js](./src/html.js): Builds the page's data and writes it into [src/template.html](./src/template.html).
 - [src/badge.js](./src/badge.js): Adds or updates the README badge.
 - [src/logger.js](./src/logger.js): Debug-gated logging.
 - [config.yaml](./config.yaml): Default configuration and plant/colour map.

@@ -10,56 +10,59 @@
       color: #c9d1d9;
       margin: 0;
       padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
-    h1 { margin-bottom: 20px; }
+    h1 { margin: 0 0 16px; font-size: 22px; }
     .container {
       display: flex;
       gap: 20px;
-      max-width: 100%;
+      align-items: flex-start;
     }
     .garden-wrapper {
       position: relative;
-      background-color: transparent;
-      line-height: 0;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
       min-width: 0;
-    }
-    .garden-grid {
-      display: grid;
-      position: relative;
-      width: 100%;
-      height: auto;
-      max-width: 1000px;
-      min-width: 300px;
       border: 1px solid #30363d;
-      user-select: none;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      height: calc(100vh - 140px);
+      min-height: 360px;
     }
-    .patch {
-      width: 100%;
-      height: 100%;
-      box-sizing: border-box;
+    #garden { display: block; width: 100%; height: 100%; cursor: grab; }
+    #garden.panning { cursor: grabbing; }
+    .zoombar {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(22, 27, 34, 0.9);
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
     }
-    /* File borders: each edge is a separate property, so the classes combine. */
-    .e1 { border-top: 1px solid rgba(0,0,0,0.34); }
-    .e2 { border-right: 1px solid rgba(0,0,0,0.34); }
-    .e4 { border-bottom: 1px solid rgba(0,0,0,0.34); }
-    .e8 { border-left: 1px solid rgba(0,0,0,0.34); }
-    /* Indentation complexity: denser stipple means more deeply nested code. */
-    .t1 { background-image: radial-gradient(rgba(0,0,0,0.20) 30%, transparent 32%); background-size: 4px 4px; }
-    .t2 { background-image: radial-gradient(rgba(0,0,0,0.28) 34%, transparent 36%); background-size: 3px 3px; }
-    .t3 { background-image: radial-gradient(rgba(0,0,0,0.36) 38%, transparent 40%); background-size: 2px 2px; }
+    .zoombar input[type=range] { width: 160px; }
+    .zoombar button {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 3px 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .zoombar button:hover { background: #30363d; }
+    .zoombar .level { min-width: 44px; color: #8b949e; }
     .sidebar {
       width: 300px;
+      flex: none;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
+      max-height: calc(100vh - 140px);
+      overflow-y: auto;
     }
     .panel {
       background-color: #161b22;
@@ -67,25 +70,42 @@
       border-radius: 6px;
       padding: 16px;
     }
-    .panel h3 { margin-top: 0; }
-    .legend-item {
-      display: flex;
-      align-items: flex-start;
-      margin-bottom: 10px;
+    .panel h3 { margin: 0 0 12px; font-size: 14px; }
+    #search {
+      width: 100%;
+      box-sizing: border-box;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      color: #c9d1d9;
+      padding: 6px 8px;
+      font-size: 13px;
     }
-    .color-box {
-      width: 16px;
-      height: 16px;
+    #search:focus { outline: none; border-color: #58a6ff; }
+    #search-status { font-size: 12px; color: #8b949e; margin-top: 8px; }
+    #search-hits {
+      margin-top: 8px;
+      max-height: 160px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+    #search-hits div {
+      padding: 3px 4px;
       border-radius: 3px;
-      margin-right: 8px;
-      flex: none;
+      cursor: pointer;
+      word-break: break-all;
     }
+    #search-hits div:hover { background: #21262d; }
+    .radio-row { display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
+    .radio-row label { display: flex; align-items: baseline; gap: 8px; cursor: pointer; }
+    .radio-row small { color: #8b949e; }
+    .legend-item { display: flex; align-items: flex-start; margin-bottom: 10px; }
+    .color-box { width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; flex: none; }
     .legend-item small { color: #8b949e; }
     .key { font-size: 12px; color: #8b949e; line-height: 1.6; }
     .key .swatch {
       display: inline-block;
-      width: 10px;
-      height: 10px;
+      width: 10px; height: 10px;
       border-radius: 2px;
       margin-right: 4px;
       vertical-align: -1px;
@@ -101,48 +121,50 @@
       line-height: 1.5;
       z-index: 1000;
       display: none;
+      max-width: 380px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
     #tooltip .name { font-weight: 600; word-break: break-all; }
     #tooltip .meta { color: #8b949e; }
-    .seed {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      background-color: white;
-      border: 1px solid black;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      z-index: 10;
-      display: none;
-    }
-    .controls {
-      margin-bottom: 10px;
-    }
-    .controls label {
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .controls label { cursor: pointer; display: flex; align-items: center; gap: 8px; }
   </style>
 </head>
 <body>
   <h1>Git Garden: {{REPO_NAME}}</h1>
-  
+
   <div class="container">
     <div class="garden-wrapper">
-      <div id="garden-grid" class="garden-grid"></div>
+      <canvas id="garden"></canvas>
+      <div class="zoombar">
+        <button id="zoom-out" title="Zoom out">−</button>
+        <input type="range" id="zoom" min="0" max="100" value="0">
+        <button id="zoom-in" title="Zoom in">+</button>
+        <span class="level" id="zoom-level"></span>
+        <button id="zoom-fit">Fit</button>
+      </div>
     </div>
 
     <div class="sidebar">
+      <div class="panel">
+        <h3>Find a file</h3>
+        <input type="text" id="search" placeholder="path fragment, e.g. src/ or .md" autocomplete="off" spellcheck="false">
+        <div id="search-status"></div>
+        <div id="search-hits"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Highlight on hover</h3>
+        <div class="radio-row" id="hover-modes">
+          <label><input type="radio" name="hover" value="none"> <span>None<br><small>Tooltip only.</small></span></label>
+          <label><input type="radio" name="hover" value="outline" checked> <span>Outline the bed<br><small>Trace the whole file.</small></span></label>
+          <label><input type="radio" name="hover" value="spotlight"> <span>Spotlight<br><small>Dim everything else.</small></span></label>
+        </div>
+      </div>
+
       <div class="panel" style="display: {{DEBUG_DISPLAY}};">
         <h3>Controls</h3>
         <div class="controls">
-          <label>
-            <input type="checkbox" id="show-seeds"> Show Biome Centers
-          </label>
+          <label><input type="checkbox" id="show-seeds"> Show biome centers</label>
         </div>
       </div>
 
@@ -169,55 +191,542 @@
 
   <script>
     (function() {
-      const patches = {{PATCHES}};
+      // Everything below paints values the generator already decided. Colours,
+      // textures and the border rule come from src/encoding.js, which the PNG
+      // renderer uses too, so the two views cannot drift apart.
+      const files = {{FILES}};
+      const cellData = {{CELLS}};
+      const sharedPatches = {{SHARED}};
       const biomes = {{BIOMES}};
-      const fileMap = {{FILE_MAP}};
-      const biomeToExts = {{BIOME_TO_EXTS}};
       const seeds = {{SEEDS}};
+      const stippleTiles = {{STIPPLE_TILES}};
+      const baseColor = {{BASE_COLOR}};
+      const gridW = {{GRID_W}};
+      const gridH = {{GRID_H}};
       const maxScore = {{MAX_SCORE}};
-      const width = {{WIDTH}};
-      const height = {{HEIGHT}};
       const patchSize = {{PATCH_SIZE}};
 
-      const grid = document.getElementById('garden-grid');
-      const legend = document.getElementById('legend');
+      const EMPTY = -1;
+      const MAX_ZOOM = 40;          // screen pixels per patch
+      const DIM = 'rgba(6, 9, 13, 0.78)';
+      const HILITE = '#f0f6fc';
+
+      const canvas = document.getElementById('garden');
+      const ctx = canvas.getContext('2d');
+      const wrapper = canvas.parentElement;
       const tooltip = document.getElementById('tooltip');
+      const zoomSlider = document.getElementById('zoom');
+      const zoomLabel = document.getElementById('zoom-level');
+      const searchBox = document.getElementById('search');
+      const searchStatus = document.getElementById('search-status');
+      const searchHits = document.getElementById('search-hits');
+      const legend = document.getElementById('legend');
       const seedCheckbox = document.getElementById('show-seeds');
 
-      // 1. Initial Styles
-      grid.style.gridTemplateColumns = `repeat(${width / patchSize}, 1fr)`;
-      grid.style.gridTemplateRows = `repeat(${height / patchSize}, 1fr)`;
-      grid.style.aspectRatio = `${width} / ${height}`;
+      /** One file index per patch, unpacked from the base64 typed array. */
+      const cells = (function() {
+        const bin = atob(cellData.data);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return cellData.encoding === 'i32'
+          ? new Int32Array(bytes.buffer)
+          : new Int16Array(bytes.buffer);
+      })();
 
-      // 2. Render Grid.
-      // Colours, borders and texture come from the generator so the page and
-      // the PNG agree; only the layout is left to CSS Grid.
-      let gridHtml = '';
-      for (let i = 0; i < patches.length; i++) {
-        const p = patches[i];
-        let cls = 'patch';
-        if (p.edges & 1) cls += ' e1';
-        if (p.edges & 2) cls += ' e2';
-        if (p.edges & 4) cls += ' e4';
-        if (p.edges & 8) cls += ' e8';
-        if (p.texture) cls += ' t' + p.texture;
-        gridHtml += `<div class="${cls}" data-idx="${i}" style="background-color: ${p.fill}; grid-column: ${Math.floor(p.x / patchSize) + 1}; grid-row: ${Math.floor(p.y / patchSize) + 1};"></div>`;
+      /** Cell indices per file, so a whole bed can be drawn in one path. */
+      const byFile = files.map(() => []);
+      for (let i = 0; i < cells.length; i++) {
+        if (cells[i] !== EMPTY) byFile[cells[i]].push(i);
       }
-      grid.innerHTML = gridHtml;
 
-      // 2b. Render Seeds
-      seeds.forEach(s => {
-        if (s.weight === 0) return;
-        const div = document.createElement('div');
-        div.className = 'seed';
-        div.title = `Center of ${s.biome}`;
-        // cx, cy are in grid units.
-        div.style.left = `${(s.cx * patchSize / width) * 100}%`;
-        div.style.top = `${(s.cy * patchSize / height) * 100}%`;
-        grid.appendChild(div);
+      // ---- view state -------------------------------------------------------
+
+      let zoom = 4;          // screen pixels per patch
+      let minZoom = 1;
+      let panX = 0, panY = 0; // top-left of the view, in patch units
+      let hovered = -1;       // file index under the cursor
+      let hoverMode = 'outline';
+      let matches = null;     // Set of file indices, or null when not searching
+      let showSeeds = false;
+      let frame = null;
+
+      function schedule() {
+        if (frame === null) frame = requestAnimationFrame(() => { frame = null; draw(); });
+      }
+
+      function viewSize() {
+        return { w: wrapper.clientWidth, h: wrapper.clientHeight };
+      }
+
+      function fitZoom() {
+        const { w, h } = viewSize();
+        return Math.min(w / gridW, h / gridH);
+      }
+
+      /** Keep the map inside the viewport, centring it whenever it fits. */
+      function clampPan() {
+        const { w, h } = viewSize();
+        const spanX = w / zoom, spanY = h / zoom;
+        panX = spanX >= gridW ? (gridW - spanX) / 2 : Math.min(Math.max(panX, 0), gridW - spanX);
+        panY = spanY >= gridH ? (gridH - spanY) / 2 : Math.min(Math.max(panY, 0), gridH - spanY);
+      }
+
+      /** Zoom toward a fixed point on screen, so the cursor stays put. */
+      function setZoom(next, anchorX, anchorY) {
+        const { w, h } = viewSize();
+        const ax = anchorX === undefined ? w / 2 : anchorX;
+        const ay = anchorY === undefined ? h / 2 : anchorY;
+        const mapX = panX + ax / zoom;
+        const mapY = panY + ay / zoom;
+        zoom = Math.min(MAX_ZOOM, Math.max(minZoom, next));
+        panX = mapX - ax / zoom;
+        panY = mapY - ay / zoom;
+        clampPan();
+        syncZoomControls();
+        invalidate();
+      }
+
+      // The slider is logarithmic: a linear one spends most of its travel in
+      // zoom levels nobody wants.
+      function zoomToSlider(z) {
+        const t = Math.log(z / minZoom) / Math.log(MAX_ZOOM / minZoom);
+        return Math.round(t * 100);
+      }
+      function sliderToZoom(v) {
+        return minZoom * Math.pow(MAX_ZOOM / minZoom, v / 100);
+      }
+      function syncZoomControls() {
+        zoomSlider.value = String(zoomToSlider(zoom));
+        zoomLabel.textContent = (zoom / patchSize).toFixed(1) + '×';
+      }
+
+      // ---- drawing ----------------------------------------------------------
+
+      const tileCache = new Map();
+
+      /**
+       * Dot tile for a complexity level. The PNG stipples individual pixels;
+       * the page has to stay sharp at any zoom, so it repeats this instead.
+       */
+      function stippleFor(level, color) {
+        const key = level + '@' + zoom.toFixed(2) + '@' + color;
+        if (tileCache.has(key)) return tileCache.get(key);
+        const spec = stippleTiles[level];
+        if (!spec) return null;
+        const step = Math.max(2, spec.spacing * zoom / patchSize);
+        const tile = document.createElement('canvas');
+        tile.width = tile.height = Math.max(2, Math.round(step));
+        const g = tile.getContext('2d');
+        g.fillStyle = color;
+        g.globalAlpha = spec.alpha;
+        g.beginPath();
+        g.arc(tile.width / 2, tile.height / 2, tile.width * spec.radius, 0, Math.PI * 2);
+        g.fill();
+        const pattern = ctx.createPattern(tile, 'repeat');
+        tileCache.set(key, pattern);
+        return pattern;
+      }
+
+      /** Screen position of a patch's top-left corner. */
+      function screenX(cx) { return (cx - panX) * zoom; }
+      function screenY(cy) { return (cy - panY) * zoom; }
+
+      /**
+       * Horizontal runs of same-file patches in the visible window, grouped by
+       * file as flat [x, y, length, ...] triples.
+       *
+       * Beds are contiguous by design, so a row of one file collapses to a
+       * single rectangle. That turns tens of thousands of path operations into
+       * a couple of thousand, which is what keeps a zoom drag inside a frame.
+       */
+      function collectRuns(x0, y0, x1, y1) {
+        const runs = new Map();
+        for (let y = y0; y <= y1; y++) {
+          const row = y * gridW;
+          let x = x0;
+          while (x <= x1) {
+            const f = cells[row + x];
+            if (f === EMPTY) { x++; continue; }
+            let end = x + 1;
+            while (end <= x1 && cells[row + end] === f) end++;
+            let list = runs.get(f);
+            if (!list) runs.set(f, list = []);
+            list.push(x, y, end - x);
+            x = end;
+          }
+        }
+        return runs;
+      }
+
+      /** Owning file at a grid position, or EMPTY outside the garden. */
+      function ownerAt(x, y) {
+        if (x < 0 || y < 0 || x >= gridW || y >= gridH) return EMPTY;
+        return cells[y * gridW + x];
+      }
+
+      /**
+       * Trace the sides of a run of patches that face a different file.
+       * Same rule as edgeBits() in src/encoding.js, which draws the PNG: a
+       * border exists wherever the neighbouring patch belongs to someone else.
+       * Within a run only the two ends can have vertical edges, so only the
+       * horizontal ones need scanning.
+       */
+      function addRunEdges(path, x, y, len, f) {
+        const top = screenY(y), bottom = screenY(y + 1);
+
+        for (const [dy, edgeY] of [[-1, top], [1, bottom]]) {
+          let i = x;
+          while (i < x + len) {
+            if (ownerAt(i, y + dy) === f) { i++; continue; }
+            let end = i + 1;
+            while (end < x + len && ownerAt(end, y + dy) !== f) end++;
+            path.moveTo(screenX(i), edgeY);
+            path.lineTo(screenX(end), edgeY);
+            i = end;
+          }
+        }
+
+        if (ownerAt(x - 1, y) !== f) {
+          path.moveTo(screenX(x), top);
+          path.lineTo(screenX(x), bottom);
+        }
+        if (ownerAt(x + len, y) !== f) {
+          path.moveTo(screenX(x + len), top);
+          path.lineTo(screenX(x + len), bottom);
+        }
+      }
+
+      /** Paint the map itself, without any highlight, into a context. */
+      function paintMap(g, w, h) {
+        g.fillStyle = baseColor;
+        g.fillRect(0, 0, w, h);
+
+        // Only the visible window is ever drawn, so cost falls as you zoom in.
+        const x0 = Math.max(0, Math.floor(panX));
+        const y0 = Math.max(0, Math.floor(panY));
+        const x1 = Math.min(gridW - 1, Math.ceil(panX + w / zoom));
+        const y1 = Math.min(gridH - 1, Math.ceil(panY + h / zoom));
+        if (x1 < x0 || y1 < y0) return;
+
+        const runs = collectRuns(x0, y0, x1, y1);
+        const lineWidth = Math.max(0.6, zoom / 8);
+        // Below a few pixels a patch the dot tile is just noise on the fill.
+        const textured = zoom >= 3;
+
+        for (const [f, list] of runs) {
+          const file = files[f];
+          const fill = new Path2D();
+          for (let i = 0; i < list.length; i += 3) {
+            fill.rect(screenX(list[i]), screenY(list[i + 1]), list[i + 2] * zoom, zoom);
+          }
+          g.fillStyle = file.fill;
+          g.fill(fill);
+
+          if (textured && file.texture) {
+            const pattern = stippleFor(file.texture, file.speckle);
+            if (pattern) {
+              // Anchor the tile to the map, not the canvas, so it does not
+              // crawl across the beds while panning.
+              if (pattern.setTransform) {
+                pattern.setTransform(new DOMMatrix().translate(screenX(0), screenY(0)));
+              }
+              g.fillStyle = pattern;
+              g.fill(fill);
+            }
+          }
+
+          const edges = new Path2D();
+          for (let i = 0; i < list.length; i += 3) {
+            addRunEdges(edges, list[i], list[i + 1], list[i + 2], f);
+          }
+          g.strokeStyle = file.border;
+          g.lineWidth = lineWidth;
+          g.stroke(edges);
+        }
+      }
+
+      // The map only changes when the view does. Hovering redraws the highlight
+      // over a cached copy instead of repainting every bed.
+      const baseLayer = document.createElement('canvas');
+      const baseCtx = baseLayer.getContext('2d');
+      let baseDirty = true;
+
+      function invalidate() { baseDirty = true; schedule(); }
+
+      function draw() {
+        const { w, h } = viewSize();
+        if (w === 0 || h === 0) return;
+        const dpr = window.devicePixelRatio || 1;
+        const pw = Math.round(w * dpr), ph = Math.round(h * dpr);
+
+        if (canvas.width !== pw || canvas.height !== ph) {
+          canvas.width = pw; canvas.height = ph;
+          baseLayer.width = pw; baseLayer.height = ph;
+          baseDirty = true;
+        }
+
+        if (baseDirty) {
+          baseCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          paintMap(baseCtx, w, h);
+          if (showSeeds) drawSeeds(baseCtx);
+          baseDirty = false;
+        }
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, pw, ph);
+        ctx.drawImage(baseLayer, 0, 0);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawHighlight(w, h);
+      }
+
+      /** Which files the highlight applies to: the search hits, else the hover. */
+      function highlightSet() {
+        if (matches && matches.size > 0) return matches;
+        if (hovered >= 0 && hoverMode !== 'none') return new Set([hovered]);
+        return null;
+      }
+
+      function drawHighlight(w, h) {
+        const set = highlightSet();
+        if (!set) return;
+        const spotlight = (matches && matches.size > 0) || hoverMode === 'spotlight';
+
+        const beds = new Path2D();
+        const outline = new Path2D();
+        for (const f of set) {
+          for (const c of byFile[f]) {
+            const x = c % gridW, y = (c / gridW) | 0;
+            beds.rect(screenX(x), screenY(y), zoom, zoom);
+            addRunEdges(outline, x, y, 1, f);
+          }
+        }
+
+        if (spotlight) {
+          // Even-odd over a full-canvas rect punches the beds out of the veil,
+          // so the highlighted files keep their real colours.
+          const veil = new Path2D();
+          veil.rect(0, 0, w, h);
+          veil.addPath(beds);
+          ctx.fillStyle = DIM;
+          ctx.fill(veil, 'evenodd');
+        }
+
+        ctx.strokeStyle = HILITE;
+        ctx.lineWidth = Math.max(1.2, zoom / 5);
+        ctx.stroke(outline);
+      }
+
+      function drawSeeds(g) {
+        for (const s of seeds) {
+          if (s.weight === 0) continue;
+          g.beginPath();
+          g.arc(screenX(s.cx), screenY(s.cy), 4, 0, Math.PI * 2);
+          g.fillStyle = '#ffffff';
+          g.fill();
+          g.strokeStyle = '#000000';
+          g.lineWidth = 1;
+          g.stroke();
+        }
+      }
+
+      // ---- picking and tooltip ----------------------------------------------
+
+      function cellAt(clientX, clientY) {
+        const box = canvas.getBoundingClientRect();
+        const cx = Math.floor(panX + (clientX - box.left) / zoom);
+        const cy = Math.floor(panY + (clientY - box.top) / zoom);
+        if (cx < 0 || cy < 0 || cx >= gridW || cy >= gridH) return -1;
+        return cy * gridW + cx;
+      }
+
+      const tipName = document.createElement('div');
+      tipName.className = 'name';
+      const tipMeta = document.createElement('div');
+      tipMeta.className = 'meta';
+      tooltip.appendChild(tipName);
+      tooltip.appendChild(tipMeta);
+
+      function formatAge(timestamp) {
+        if (!timestamp) return 'not in the replayed history';
+        const days = Math.floor((Date.now() / 1000 - timestamp) / 86400);
+        if (days <= 0) return 'touched today';
+        if (days === 1) return 'touched yesterday';
+        return 'touched ' + days + ' days ago';
+      }
+
+      function describe(file) {
+        return file.biome + ' · health ' + file.health + '/' + maxScore + ' · ' +
+               file.lines + ' lines · complexity ' + file.complexity + ' · ' +
+               file.commits + ' commits · ' + formatAge(file.lastTouched);
+      }
+
+      function showTooltip(cell, clientX, clientY) {
+        const primary = cell < 0 ? EMPTY : cells[cell];
+        if (primary === EMPTY) { hideTooltip(); return; }
+
+        // Almost every patch belongs to one file. Only the out-of-room fallback
+        // in assign.js shares one, and those arrive in a sparse side table.
+        const extra = sharedPatches[cell];
+        // textContent, not innerHTML: these strings are repository file paths.
+        if (!extra) {
+          tipName.textContent = files[primary].path;
+          tipMeta.textContent = describe(files[primary]);
+        } else {
+          const all = [primary].concat(extra);
+          tipName.textContent = all.length + ' files share this patch';
+          tipMeta.textContent = all.map(i => files[i].path).join(', ');
+        }
+        placeTooltip(clientX, clientY);
+      }
+
+      /**
+       * Put the tooltip beside the cursor, flipping to the other side rather
+       * than running off the window. Measured after the text is set, so a long
+       * path is accounted for; it all happens in one event handler, so nothing
+       * is painted at the intermediate position.
+       */
+      function placeTooltip(clientX, clientY) {
+        const gap = 15, margin = 8;
+        tooltip.style.display = 'block';
+        const w = tooltip.offsetWidth, h = tooltip.offsetHeight;
+
+        let left = clientX + gap;
+        if (left + w > window.innerWidth - margin) left = clientX - gap - w;
+        left = Math.max(margin, Math.min(left, window.innerWidth - w - margin));
+
+        let top = clientY + gap;
+        if (top + h > window.innerHeight - margin) top = clientY - gap - h;
+        top = Math.max(margin, Math.min(top, window.innerHeight - h - margin));
+
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+      }
+
+      function hideTooltip() { tooltip.style.display = 'none'; }
+
+      // ---- interaction ------------------------------------------------------
+
+      let dragging = false, dragged = false, lastX = 0, lastY = 0;
+
+      canvas.addEventListener('mousedown', e => {
+        dragging = true; dragged = false;
+        lastX = e.clientX; lastY = e.clientY;
+        canvas.classList.add('panning');
       });
 
-      // 3. Render Legend.
+      window.addEventListener('mouseup', () => {
+        dragging = false;
+        canvas.classList.remove('panning');
+      });
+
+      canvas.addEventListener('mousemove', e => {
+        if (dragging) {
+          const dx = e.clientX - lastX, dy = e.clientY - lastY;
+          if (dx || dy) dragged = true;
+          panX -= dx / zoom;
+          panY -= dy / zoom;
+          lastX = e.clientX; lastY = e.clientY;
+          clampPan();
+          hideTooltip();
+          invalidate();
+          return;
+        }
+
+        const cell = cellAt(e.clientX, e.clientY);
+        showTooltip(cell, e.clientX, e.clientY);
+
+        // Redraw only when the file under the cursor actually changes, so
+        // sweeping across one bed costs nothing.
+        const file = cell < 0 ? -1 : cells[cell];
+        if (file !== hovered) {
+          hovered = file;
+          if (hoverMode !== 'none') schedule();
+        }
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        hideTooltip();
+        if (hovered !== -1) { hovered = -1; schedule(); }
+      });
+
+      canvas.addEventListener('wheel', e => {
+        e.preventDefault();
+        const box = canvas.getBoundingClientRect();
+        const factor = Math.exp(-e.deltaY * 0.0015);
+        setZoom(zoom * factor, e.clientX - box.left, e.clientY - box.top);
+      }, { passive: false });
+
+      zoomSlider.addEventListener('input', () => setZoom(sliderToZoom(+zoomSlider.value)));
+      document.getElementById('zoom-in').addEventListener('click', () => setZoom(zoom * 1.4));
+      document.getElementById('zoom-out').addEventListener('click', () => setZoom(zoom / 1.4));
+      document.getElementById('zoom-fit').addEventListener('click', () => {
+        zoom = fitZoom(); clampPan(); syncZoomControls(); invalidate();
+      });
+
+      document.getElementById('hover-modes').addEventListener('change', e => {
+        hoverMode = e.target.value;
+        schedule();
+      });
+
+      if (seedCheckbox) {
+        seedCheckbox.addEventListener('change', function() {
+          showSeeds = this.checked;
+          invalidate();
+        });
+      }
+
+      // ---- search -----------------------------------------------------------
+
+      function runSearch() {
+        const query = searchBox.value.trim().toLowerCase();
+        searchHits.textContent = '';
+
+        if (!query) {
+          matches = null;
+          searchStatus.textContent = '';
+          schedule();
+          return;
+        }
+
+        matches = new Set();
+        const hits = [];
+        for (let i = 0; i < files.length; i++) {
+          if (files[i].path.toLowerCase().includes(query)) {
+            matches.add(i);
+            hits.push(i);
+          }
+        }
+
+        searchStatus.textContent = hits.length === 0
+          ? 'No file matches.'
+          : hits.length + (hits.length === 1 ? ' file' : ' files') + ' highlighted.';
+
+        for (const i of hits.slice(0, 40)) {
+          const row = document.createElement('div');
+          row.textContent = files[i].path; // untrusted: repository paths
+          row.addEventListener('click', () => centreOn(i));
+          searchHits.appendChild(row);
+        }
+        schedule();
+      }
+
+      /** Bring one file's bed into the middle of the view. */
+      function centreOn(fileIndex) {
+        const list = byFile[fileIndex];
+        if (!list.length) return;
+        let sx = 0, sy = 0;
+        for (const c of list) { sx += c % gridW; sy += (c / gridW) | 0; }
+        const { w, h } = viewSize();
+        panX = sx / list.length - w / zoom / 2;
+        panY = sy / list.length - h / zoom / 2;
+        clampPan();
+        invalidate();
+      }
+
+      searchBox.addEventListener('input', runSearch);
+
+      // ---- legend -----------------------------------------------------------
+
       // Built with DOM nodes rather than innerHTML: biome names come from the
       // user's config file and are not trusted markup.
       for (const b of biomes) {
@@ -233,76 +742,29 @@
         const name = document.createElement('strong');
         name.textContent = b.name;
         label.appendChild(name);
-        if (b.extensions) {
-          label.appendChild(document.createTextNode(` (${b.extensions})`));
-        }
+        if (b.extensions) label.appendChild(document.createTextNode(' (' + b.extensions + ')'));
         label.appendChild(document.createElement('br'));
         const stats = document.createElement('small');
-        stats.textContent =
-          `${b.fileCount} files · health ${b.avgHealth}/${maxScore} · complexity ${b.avgComplexity}`;
+        stats.textContent = b.fileCount + ' files · health ' + b.avgHealth + '/' + maxScore +
+                            ' · complexity ' + b.avgComplexity;
         label.appendChild(stats);
 
         item.appendChild(label);
         legend.appendChild(item);
       }
 
-      // 4. Interactivity
-      const tipName = document.createElement('div');
-      tipName.className = 'name';
-      const tipMeta = document.createElement('div');
-      tipMeta.className = 'meta';
-      tooltip.appendChild(tipName);
-      tooltip.appendChild(tipMeta);
+      // ---- start ------------------------------------------------------------
 
-      function formatAge(timestamp) {
-        if (!timestamp) return 'not in the replayed history';
-        const days = Math.floor((Date.now() / 1000 - timestamp) / 86400);
-        if (days <= 0) return 'touched today';
-        if (days === 1) return 'touched yesterday';
-        return `touched ${days} days ago`;
+      function reset() {
+        minZoom = Math.min(1, fitZoom());
+        zoom = fitZoom();
+        clampPan();
+        syncZoomControls();
+        invalidate();
       }
 
-      grid.addEventListener('mousemove', function(e) {
-        const idx = e.target.getAttribute && e.target.getAttribute('data-idx');
-
-        tooltip.style.left = (e.clientX + 15) + 'px';
-        tooltip.style.top = (e.clientY + 15) + 'px';
-
-        if (idx === null || idx === undefined) {
-          tooltip.style.display = 'none';
-          return;
-        }
-
-        const patch = patches[idx];
-        const files = (patch.fileIds || []).map(id => fileMap[id]).filter(Boolean);
-        if (files.length === 0) {
-          tooltip.style.display = 'none';
-          return;
-        }
-
-        // textContent, not innerHTML: these strings are repository file paths.
-        if (files.length === 1) {
-          const f = files[0];
-          tipName.textContent = f.path;
-          tipMeta.textContent =
-            `${f.biome} · health ${f.health}/${maxScore} · ${f.lines} lines · ` +
-            `complexity ${f.complexity} · ${f.commits} commits · ${formatAge(f.lastTouched)}`;
-        } else {
-          tipName.textContent = `${files.length} files`;
-          tipMeta.textContent = `${files[0].biome} · ${files.map(f => f.path).join(', ')}`;
-        }
-        tooltip.style.display = 'block';
-      });
-
-      grid.addEventListener('mouseleave', function() {
-        tooltip.style.display = 'none';
-      });
-
-      seedCheckbox.addEventListener('change', function() {
-        const display = this.checked ? 'block' : 'none';
-        document.querySelectorAll('.seed').forEach(s => s.style.display = display);
-      });
-
+      window.addEventListener('resize', () => { minZoom = Math.min(1, fitZoom()); clampPan(); invalidate(); });
+      reset();
     })();
   </script>
 </body>

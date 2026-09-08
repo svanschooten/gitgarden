@@ -1,5 +1,5 @@
 import { clearAssignments, bulkInsertPatches } from './db.js';
-import { hash32 } from './render.js';
+import { hash32 } from './encoding.js';
 
 /**
  * Sort patches by angle around the seed, then outward.
